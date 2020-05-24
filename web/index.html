@@ -3,7 +3,7 @@
 
     </head>
     <body ng-controller="HomeController">
-        <div ng-show="screen == screens.selectCountry">
+        <div ng-show="state.screen == screens.selectCountry">
             <h1>Where are you located?</h1>
             <h3>This way others can know Christians around the world are praying for them</h3>
     
@@ -11,15 +11,48 @@
                 ng-model="state.selectedCountry"
                 ng-options="country for country in countries">
             </select>
-    
-            <br>
-            <button ng-click="todo()">
-                No, Thank You. I don't want to say where I'm at.
-            </button>
             
             <br>
-            <button ng-click="todo()">
+            <button ng-click="selectCountry()">
                 I am located in {{ state.selectedCountry }}
+            </button>
+    
+            <br>
+            <button ng-click="noCountry()">
+                No, Thank You. I don't want to say where I'm at.
+            </button>
+        </div>
+
+        <div ng-show="state.screen == screens.pray">
+            Pray
+
+            <br>
+            <button ng-click="ask()">
+                Ask for prayer
+            </button>
+        </div>
+
+        <div ng-show="state.screen == screens.ask">
+            Who would you like to pray for?
+
+            <br>
+            <select 
+                ng-model="state.prayerRequest.name"
+                ng-options="letter for letter in letters">
+            </select>
+
+            <br>
+            What would you like pray for?
+
+            <br>
+            <select 
+                ng-model="state.prayerRequest.request"
+                ng-options="request for request in requests">
+            </select>
+
+            <br>
+            <button ng-click="todo()">
+                Ask for prayer
             </button>
         </div>
 

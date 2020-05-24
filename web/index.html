@@ -2,8 +2,27 @@
     <head>
 
     </head>
-    <body>
-        {{ 1 + 2 }}
+    <body ng-controller="HomeController">
+        <div ng-show="screen == screens.selectCountry">
+            <h1>Where are you located?</h1>
+            <h3>This way others can know Christians around the world are praying for them</h3>
+    
+            <select 
+                ng-model="state.selectedCountry"
+                ng-options="country for country in countries">
+            </select>
+    
+            <br>
+            <button ng-click="todo()">
+                No, Thank You. I don't want to say where I'm at.
+            </button>
+            
+            <br>
+            <button ng-click="todo()">
+                I am located in {{ state.selectedCountry }}
+            </button>
+        </div>
+
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>
         <script src="app.js"></script>
     </body>

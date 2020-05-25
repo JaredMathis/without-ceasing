@@ -9,3 +9,8 @@ To run tests:
 node test
 
 
+To deploy:
+
+firebase deploy
+
+

@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-const ask = require('./../library/ask');
+const { ask } = require('without-ceasing-library');
 
 exports.ask = functions.https.onRequest(async (req, res) => {
     let userId = req.query.userId;

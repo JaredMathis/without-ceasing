@@ -1,0 +1,27 @@
+{
+  "name": "without-ceasing",
+  "version": "1.0.0",
+  "description": "To setup:     npm install -g firebase-tools     npm install -g browserify",
+  "main": "build.js",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "sync-request": "^6.1.0",
+    "wlj-utilities": "^1.0.16"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaredMathis/without-ceasing.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/JaredMathis/without-ceasing/issues"
+  },
+  "homepage": "https://github.com/JaredMathis/without-ceasing#readme"
+}

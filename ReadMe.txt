@@ -9,6 +9,6 @@ To deploy:
     firebase deploy
 
 To emulate:
+    export GOOGLE_APPLICATION_CREDENTIALS="/users/Jared/without-ceasing/credentials.json"
     firebase emulators:start
-
 

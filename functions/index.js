@@ -4,6 +4,10 @@ admin.initializeApp();
 
 const { ask } = require('without-ceasing-library');
 
+exports.health = functions.https.onRequest(async (req, res) => {
+    res.json({success:true});
+});
+
 exports.ask = functions.https.onRequest(async (req, res) => {
     let userId = req.query.userId;
 
@@ -22,4 +26,12 @@ exports.ask = functions.https.onRequest(async (req, res) => {
     await requestsChild.set(result);
 
     res.json({success:true});
-  });
+});
+
+exports.requests = functions.https.onRequest(async (req, res) => {
+    let requests = admin.database().ref('/requests');
+    let existing = await requests.once('value');
+    let value = existing.val();
+
+    res.json({value: value});
+});

@@ -3,8 +3,6 @@
 
     </head>
     <body ng-controller="HomeController">
-        {{ value }}
-
         <div ng-show="state.screen == screens.selectCountry">
             <h1>Where are you located?</h1>
             <h3>This way others can know Christians around the world are praying for them</h3>
@@ -48,8 +46,8 @@
 
             <br>
             <select 
-                ng-model="state.prayerRequest.request"
-                ng-options="request for request in requests">
+                ng-model="state.prayerRequest.petition"
+                ng-options="petition for petition in petitions">
             </select>
 
             <br>
@@ -62,6 +60,8 @@
         <script src="https://www.gstatic.com/firebasejs/7.14.5/firebase-database.js"></script>
         
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>
+
+        <script src="bundle.js"></script>
         <script src="app.js"></script>
     </body>
 </html>

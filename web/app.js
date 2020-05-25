@@ -1,36 +1,6 @@
-const countries = [
-    "United States",
-    "Mexico"
-];
-
-const letters = [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'J',
-    'K',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'Q',
-    'R',
-    'S',
-    'T',
-    'U',
-    'V',
-    'W',
-    'X',
-    'Y',
-    'Z',
-];
+const letters = require('/library/letters.js');
+const petitions = require('/library/petitions.js');
+const countries = require('/library/countries.js');
 
 const screens = {
     selectCountry: 'selectCountry',
@@ -40,34 +10,16 @@ const screens = {
 
 const unspoken = "Unspoken";
 
-const requests = [
-    'Wisdom',
-    'Patience',
-];
-
-const firebaseUrl = 'https://without-ceasing.firebaseio.com';
-
-function createFirebase() {
-    const fb = new Firebase(firebaseUrl);
-    return fb;
-}
-
 angular.module('app', []);
 
-angular.module('app').factory('firebase', createFirebase);
-
 angular.module('app').controller('HomeController', 
-($scope, firebase)=>{
+($scope)=>{
     $scope.screens = screens;
     $scope.letters = letters;
     $scope.countries = countries;
-    $scope.requests = requests;
+    $scope.petitions = petitions;
 
     $scope.todo = () => alert('TODO');
-
-    firebase.on('value', snap => {
-        $scope.value = snap.val();
-    });
 
     function resetLocalStorage() {
         // TODO: auto-detect country

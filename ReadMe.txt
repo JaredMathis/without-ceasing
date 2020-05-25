@@ -1,16 +1,14 @@
 To setup:
-
-npm install -g firebase-tools
-npm install -g browserify
-
+    npm install -g firebase-tools
+    npm install -g browserify
 
 To run tests:
-
-node test
-
+    node test
 
 To deploy:
+    firebase deploy
 
-firebase deploy
+To emulate:
+    firebase emulators:start
 
 

@@ -69,11 +69,13 @@ exports.intercessions = functions.https.onRequest(async (req, res) => {
         u.assert(() => u.isString(prayerUserId));
     });
 
-    let expected = ask({
+    let prayer = {
         letter: req.query.letter,
         petition: req.query.petition,
         userId: prayerUserId,
-    });
+    };
+
+    let expected = ask(prayer);
 
     let userPrayers = admin.database().ref(`/user/${prayerUserId}/${prayersRoute}`);
     let userPrayersValue = await userPrayers.once('value');
@@ -114,6 +116,10 @@ exports.intercessions = functions.https.onRequest(async (req, res) => {
 
     res.json({success:false, message:'did not find intercessions'});
 });
+
+function getIntercessions() {
+    
+}
 
 exports.intercede = functions.https.onRequest(async (req, res) => {
     allowCORS(res);

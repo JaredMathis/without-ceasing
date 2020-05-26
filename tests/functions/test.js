@@ -8,7 +8,7 @@ const production = 'https://us-central1-without-ceasing.cloudfunctions.net/';
 
 const server = local;
 const health = server + "health";
-const requests = server + "requests";
+const requests = server + "prayers";
 const ask = server + "ask";
 
 u.scope(__filename, x => {
@@ -16,7 +16,7 @@ u.scope(__filename, x => {
         return;
     }
 
-    test1();
+    ask2PrayersShouldShowUp();
 });
 
 function askPrayer(letter, petition, userId) {
@@ -32,9 +32,9 @@ function askPrayer(letter, petition, userId) {
     });
 }
 
-function test1() {
+function ask2PrayersShouldShowUp() {
     let result;
-    u.scope(test1.name, x => {
+    u.scope(ask2PrayersShouldShowUp.name, x => {
         askPrayer('J', 'Wisdom', '1234');
         askPrayer('J', 'Wisdom', '1235');
 

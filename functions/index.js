@@ -51,7 +51,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
     res.json({success:true});
 });
 
-exports.requests = functions.https.onRequest(async (req, res) => {
+exports.prayers = functions.https.onRequest(async (req, res) => {
     let requests = admin.database().ref(`/${prayers}`);
     let r = await requests.once('value');
     res.json(r);

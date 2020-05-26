@@ -32,6 +32,21 @@ angular.module('app').controller('HomeController',
 
     $scope.todo = () => alert('TODO');
 
+    function refreshPrayers() {
+        console.log('refreshPrayers: entered');
+        return $http.get(server + "/prayers").then((response) => {
+            console.log('refreshPrayers', { response });
+            $scope.state.prayers = [];
+            for (let key in response.data) {
+                let prayer = response.data[key];
+                $scope.state.prayers.push(prayer);
+            }
+            updateLocalStorage();
+        });
+    }
+
+    refreshPrayers();
+
     function resetLocalStorage() {
         // TODO: auto-detect country
         $scope.state = {};
@@ -49,6 +64,10 @@ angular.module('app').controller('HomeController',
         $scope.state = JSON.parse(json);
         if (!$scope.state.userId) {
             $scope.state.userId = uuidv4();
+            updateLocalStorage();
+        }
+        if (!$scope.state.hasOwnProperty('currentPrayerIndex')) {
+            $scope.state.currentPrayerIndex = 0;
             updateLocalStorage();
         }
     }
@@ -91,6 +110,30 @@ angular.module('app').controller('HomeController',
         }
         $http.get(server + "/ask" + u.toQueryString(query)).then((response) => {
             console.log('askSubmit', { response });
+
+            $scope.state.screen = screens.pray;
+            updateLocalStorage();
         });
     };
+
+    $scope.pray = () => {
+        let currentPrayer = $scope.getCurrentPrayer();
+        const query = {
+            prayerUserId: currentPrayer.userId,
+            letter: currentPrayer.letter.toString(),
+            petition: currentPrayer.petition.toString(),
+            userId: $scope.state.userId,
+            country: $scope.state.selectedCountry,
+        }
+        $http.get(server + "/pray" + u.toQueryString(query)).then((response) => {
+            console.log('askSubmit', { response });
+
+            $scope.state.screen = screens.pray;
+            updateLocalStorage();
+        });
+    };
+
+    $scope.getCurrentPrayer = () => {
+        return $scope.state.prayers[$scope.state.currentPrayerIndex];
+    }
 });

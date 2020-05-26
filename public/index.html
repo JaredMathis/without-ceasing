@@ -24,7 +24,12 @@
         </div>
 
         <div ng-show="state.screen == screens.pray">
-            Pray
+            Heavenly Father, 
+            please give {{ letters[getCurrentPrayer().letter] }}
+            {{ petitions[getCurrentPrayer().petition] }}.
+
+            <br>
+            <button ng-click=pray()>In Jesus Name!</button>
 
             <br>
             <button ng-click="ask()">

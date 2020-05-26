@@ -54,6 +54,47 @@ exports.ask = functions.https.onRequest(async (req, res) => {
     res.json({success:true});
 });
 
+exports.pray = functions.https.onRequest(async (req, res) => {
+    allowCORS(res);
+
+    let userId = req.query.userId;
+
+    let prayerUserId = req.query.prayerUserId;
+    let result = ask({
+        letter: req.query.letter,
+        petition: req.query.petition,
+        userId: prayerUserId,
+    });
+
+    let userPrayers = admin.database().ref(`/user/${prayerUserId}/${prayersRoute}`);
+    let userPrayersValue = await userPrayers.once('value');
+
+    let allUserPrayers = JSON.parse(JSON.stringify(userPrayersValue));
+    if (!allUserPrayers) {
+        res.json({success:false, message:'No prayers for user'});
+    }
+    let keys = Object.keys(allUserPrayers);
+    for (let key of keys) {
+        let prayer = allUserPrayers[key];
+        if (prayersAreEqual(result, prayer)) {
+            console.log({here: userPrayersValue[key]});
+            res.json({
+                success:true,
+            });
+            return;
+        }
+    }
+
+    let userRequestsChild = await userPrayers.push();
+    await userRequestsChild.set(result);
+
+    let prayers = admin.database().ref(`/${prayersRoute}`);
+    let prayersChild = await prayers.push();
+    await prayersChild.set(result);
+
+    res.json({success:true});
+});
+
 exports.prayers = functions.https.onRequest(async (req, res) => {
     allowCORS(res);
     

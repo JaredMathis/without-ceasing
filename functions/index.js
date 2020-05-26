@@ -22,15 +22,14 @@ exports.ask = functions.https.onRequest(async (req, res) => {
         userId: userId,
     });
 
-    let userRequests = admin.database().ref(`/user/${userId}/${prayersRoute}`);
-    let userRequestsValue = await userRequests.once('value');
+    let userPrayers = admin.database().ref(`/user/${userId}/${prayersRoute}`);
+    let userPrayersValue = await userPrayers.once('value');
 
-    let allUserRequests = JSON.parse(JSON.stringify(userRequestsValue));
-    if (allUserRequests) {
-        let keys = Object.keys(allUserRequests);
-        console.log({allUserRequests});
+    let allUserPrayers = JSON.parse(JSON.stringify(userPrayersValue));
+    if (allUserPrayers) {
+        let keys = Object.keys(allUserPrayers);
         for (let key of keys) {
-            let prayer = allUserRequests[key];
+            let prayer = allUserPrayers[key];
             if (prayersAreEqual(result, prayer)) {
                 res.json({
                     success:false,
@@ -41,7 +40,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
         }
     }
 
-    let userRequestsChild = await userRequests.push();
+    let userRequestsChild = await userPrayers.push();
     await userRequestsChild.set(result);
 
     let prayers = admin.database().ref(`/${prayersRoute}`);

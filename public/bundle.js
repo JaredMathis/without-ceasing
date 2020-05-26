@@ -159,7 +159,7 @@ function assertAtMost(left, right) {
         return assertError(assertAtMost.name);
     });
 }
-},{"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./log":19,"fs":46}],3:[function(require,module,exports){
+},{"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./log":19,"fs":22}],3:[function(require,module,exports){
 (function (process){
 const { 
     isArray,
@@ -305,7 +305,7 @@ u.scope(__filename, x => {
     return result.join(EOL);
 }
 }).call(this,require('_process'))
-},{"./core":4,"./library/assert":7,"./library/merge":13,"./library/scope":16,"./tools":20,"_process":49,"fs":46,"os":47,"path":48}],4:[function(require,module,exports){
+},{"./core":4,"./library/assert":7,"./library/merge":13,"./library/scope":16,"./tools":20,"_process":25,"fs":22,"os":23,"path":24}],4:[function(require,module,exports){
 (function (process){
 const isUndefined = require('./library/isUndefined');
 
@@ -366,7 +366,7 @@ function range(count, start) {
     return result;
 }
 }).call(this,require('_process'))
-},{"./library/isUndefined":12,"_process":49}],5:[function(require,module,exports){
+},{"./library/isUndefined":12,"_process":25}],5:[function(require,module,exports){
 const {
     isDefined,
     isString,
@@ -508,7 +508,7 @@ function bumpPackageVersion(packageDirectory) {
         if (log) console.log(`Updated version to ${nextVersion} in ` + packagePath);
     })
 }
-},{"./assert":2,"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./tools":20,"fs":46,"path":48}],6:[function(require,module,exports){
+},{"./assert":2,"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./tools":20,"fs":22,"path":24}],6:[function(require,module,exports){
 module.exports = {};
 module.exports.throws = require("./library/throws.js");
 module.exports.assertIsJsonResponse = require("./library/assertIsJsonResponse.js");
@@ -1308,640 +1308,8 @@ function stringSuffix(string, count) {
     return result;
 }
 },{"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./log":19}],21:[function(require,module,exports){
-arguments[4][1][0].apply(exports,arguments)
-},{"./assert":22,"./commandLine":23,"./core":24,"./file":25,"./index":26,"./log":41,"./tools":42,"dup":1}],22:[function(require,module,exports){
-arguments[4][2][0].apply(exports,arguments)
-},{"./core":24,"./library/assert":28,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./log":41,"dup":2,"fs":46}],23:[function(require,module,exports){
-(function (process){
-const { 
-    isString,
-} = require('./core');
 
-const scope = require('./library/scope');
-const assert = require('./library/assert');
-const merge = require('./library/merge');
-const isArray = require('./library/isArray');
-
-const { 
-    loop,
-} = require('./tools');
-
-const fs = require('fs');
-const path = require('path');
-const { EOL } = require('os');
-
-let verbose = false;
-
-module.exports = {
-    commandLine,
-    fn,
-    baseDirectory: '.',
-    /** Whether or not this is the wlj-utilities NPM package */
-    isWljUtilitiesPackage: false
-};
-
-function commandLine() {
-    scope(commandLine.name, x=> {
-        let commands = {
-            fn,
-        };
-
-        let command = commands[process.argv[2]];
-        if (!command) {
-            console.log('Please use a command-line argument.');
-            console.log('Valid command-line arguments:');
-            loop(Object.keys(commands), c => {
-                console.log(c);
-            });
-            return;
-        }
-        
-        let remaining = process.argv.slice(3);
-        if (verbose) {
-            console.log('Calling: ' + command.name);
-            console.log('Args: ' + remaining);
-        }
-        let result = command(remaining);
-        console.log(result);
-    
-    });
-}
-
-function fn(args) {
-    let result = [];
-    scope(fn.name, x => {
-        merge(x, {args});
-        assert(() => isArray(args));
-
-        if (args.length !== 1) {
-            result.push('Expecting 1 argument');
-            return;
-        }
-
-        let fnName = args[0];
-        assert(() => isString(fnName));
-
-        const library = 'library';
-        let libDirectory = path.join(module.exports.baseDirectory, library);
-        if (!fs.existsSync(libDirectory)) {
-            fs.mkdirSync(libDirectory);
-            result.push('Created ' + libDirectory);
-        }
-
-        let fnFile = path.join(libDirectory, fnName + '.js');
-        assert(() => !fs.existsSync(fnFile));
-        fs.writeFileSync(fnFile, `
-${module.exports.isWljUtilitiesPackage ? 'const scope = require("./scope");' : 'const u = require("wlj-utilities");' }
-
-module.exports = ${fnName};
-
-function ${fnName}() {
-    let result;
-    ${module.exports.isWljUtilitiesPackage ? '' : 'u.'}scope(${fnName}.name, x => {
-
-    });
-    return result;
-}
-`);
-        assert(() => fs.existsSync(fnFile));
-        result.push('Created ' + fnFile);
-
-        let testsDirectory = path.join(module.exports.baseDirectory, 'tests');
-        if (!fs.existsSync(testsDirectory)) {
-            fs.mkdirSync(testsDirectory);
-            result.push('Created ' + testsDirectory);
-        }
-
-        let fnTestDirectory = path.join(testsDirectory, fnName);
-        if (!fs.existsSync(fnTestDirectory)) {
-            fs.mkdirSync(fnTestDirectory);
-            result.push('Created ' + fnTestDirectory);
-        }
-
-        let testFile = path.join(fnTestDirectory, fnName + '.js');
-        assert(() => !fs.existsSync(testFile));
-        fs.writeFileSync(testFile, `
-const u = require("${module.exports.isWljUtilitiesPackage ? '../../all' : 'wlj-utilities' }");
-
-const ${fnName} = require("../../${library}/${fnName}.js");
-
-u.scope(__filename, x => {
-
-});
-`);
-        assert(() => fs.existsSync(testFile));
-        result.push('Created ' + testFile);
-
-        let allTestsFile = path.join(module.exports.baseDirectory, 'test.js');
-        if (!fs.existsSync(allTestsFile)) {
-            fs.writeFileSync(allTestsFile, '');
-            result.push('Created ' + allTestsFile);
-        } else {
-            result.push('Modified ' + allTestsFile);
-        }
-        fs.appendFileSync(allTestsFile, EOL);
-        fs.appendFileSync(allTestsFile, `require("./${testFile}");`)
-
-        let indexFile = path.join(module.exports.baseDirectory, 'index.js');
-        if (!fs.existsSync(indexFile)) {
-            fs.writeFileSync(indexFile, 'module.exports = {};');
-            result.push('Created ' + indexFile);
-        } else {
-            result.push('Modified ' + indexFile);
-        }
-        fs.appendFileSync(indexFile, EOL);
-        fs.appendFileSync(indexFile, `module.exports.${fnName} = require("./library/${fnName}.js");`);
-        result.push('Finished');
-    });
-
-    return result.join(EOL);
-}
-}).call(this,require('_process'))
-},{"./core":24,"./library/assert":28,"./library/isArray":33,"./library/merge":35,"./library/scope":38,"./tools":42,"_process":49,"fs":46,"os":47,"path":48}],24:[function(require,module,exports){
-(function (process){
-const isUndefined = require('./library/isUndefined');
-
-module.exports = {
-    processExit,
-    isEqualJson,
-    isDefined,
-    isInteger,
-    range,
-    isFunction,
-    isString,
-}
-
-function isString(s) {
-    return (s + "") === s;
-}
-
-function processExit() {
-    let log = true;
-    if (log) {
-        let stack = new Error().stack;
-        console.log(stack);
-    }
-    console.log('Calling process.exit(1)');
-    process.exit(1);
-}
-
-function isEqualJson(a, b) {
-    return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function isDefined(a) {
-    return !isUndefined(a);
-}
-
-function isInteger(a) {
-    return parseInt(a, 10) === a;
-}
-
-function isFunction(functionToCheck) {
-    return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
-}
-
-function range(count, start) {
-    if (isUndefined(start)) {
-        start = 0;
-    }
-    let result = [];
-    let max = start + count - 1;
-    for (let i = start; i <= max; i++) {
-        result.push(i);
-    }
-    return result;
-}
-}).call(this,require('_process'))
-},{"./library/isUndefined":34,"_process":49}],25:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"./assert":22,"./core":24,"./library/assert":28,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./tools":42,"dup":5,"fs":46,"path":48}],26:[function(require,module,exports){
-module.exports = {};
-module.exports.throws = require("./library/throws.js");
-module.exports.assertIsJsonResponse = require("./library/assertIsJsonResponse.js");
-module.exports.assertIsEqualJson = require("./library/assertIsEqualJson.js");
-module.exports.assert = require("./library/assert.js");
-module.exports.scope = require("./library/scope.js");
-module.exports.propertiesToString = require("./library/propertiesToString.js");
-module.exports.toQueryString = require("./library/toQueryString.js");
-module.exports.propertiesAreEqual = require("./library/propertiesAreEqual.js");
-module.exports.assertIsStringArray = require("./library/assertIsStringArray.js");
-module.exports.assertOnlyContainsProperties = require("./library/assertOnlyContainsProperties.js");
-module.exports.merge = require("./library/merge.js");
-module.exports.arrayExcept = require("./library/arrayExcept.js");
-module.exports.isArray = require("./library/isArray.js");
-},{"./library/arrayExcept.js":27,"./library/assert.js":28,"./library/assertIsEqualJson.js":29,"./library/assertIsJsonResponse.js":30,"./library/assertIsStringArray.js":31,"./library/assertOnlyContainsProperties.js":32,"./library/isArray.js":33,"./library/merge.js":35,"./library/propertiesAreEqual.js":36,"./library/propertiesToString.js":37,"./library/scope.js":38,"./library/throws.js":39,"./library/toQueryString.js":40}],27:[function(require,module,exports){
-
-const scope = require("./scope");
-const isArray = require("./isArray");
-const assert = require("./assert");
-
-module.exports = arrayExcept;
-
-function arrayExcept(array, except) {
-    let result;
-    scope(arrayExcept.name, x => {
-        assert(() => isArray(array));
-        assert(() => isArray(except));
-        
-        result = [];
-
-        for (let a of array) {
-            if (except.includes(a)) {
-                continue;
-            }
-            result.push(a);
-        }
-    });
-    return result;
-}
-
-},{"./assert":28,"./isArray":33,"./scope":38}],28:[function(require,module,exports){
-arguments[4][7][0].apply(exports,arguments)
-},{"../core":24,"./merge":35,"./scope":38,"dup":7}],29:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":8}],30:[function(require,module,exports){
-arguments[4][9][0].apply(exports,arguments)
-},{"./../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":9}],31:[function(require,module,exports){
-
-const assert = require("./assert");
-const scope = require("./scope");
-const isArray = require("./isArray");
-const isString = require("./../core").isString;
-
-module.exports = assertIsStringArray;
-
-function assertIsStringArray(array) {
-    let result;
-    scope(assertIsStringArray.name, x => {
-        assert(() => isArray(array));
-
-        for (let a of array) {
-            assert(() => isString(a));
-        }
-    });
-    return result;
-}
-
-},{"./../core":24,"./assert":28,"./isArray":33,"./scope":38}],32:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"./../core":24,"./assert":28,"./assertIsStringArray":31,"./merge":35,"./scope":38,"dup":11}],33:[function(require,module,exports){
-module.exports = isArray;
-
-function isArray(a) {
-    return Array.isArray(a);
-}
-},{}],34:[function(require,module,exports){
-arguments[4][12][0].apply(exports,arguments)
-},{"dup":12}],35:[function(require,module,exports){
-arguments[4][13][0].apply(exports,arguments)
-},{"./isUndefined":34,"./scope":38,"dup":13}],36:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"./assert":28,"./assertIsStringArray":31,"./assertOnlyContainsProperties":32,"./scope":38,"dup":14}],37:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"./../core":24,"./../log":41,"./isUndefined":34,"dup":15}],38:[function(require,module,exports){
-arguments[4][16][0].apply(exports,arguments)
-},{"../core":24,"./propertiesToString":37,"dup":16}],39:[function(require,module,exports){
-arguments[4][17][0].apply(exports,arguments)
-},{"./../core":24,"./../library/assert":28,"./../library/scope":38,"dup":17}],40:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"./../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":18}],41:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"./core":24,"dup":19}],42:[function(require,module,exports){
-const isUndefined = require('./library/isUndefined');
-const merge = require('./library/merge');
-const assert = require('./library/assert');
-const isArray = require('./library/isArray');
-
-const {
-    isFunction,
-    isDefined,
-    isString,
-    isInteger,
-} = require('./core');
-
-const scope = require('./library/scope');
-
-const {
-    consoleLog,
-} = require('./log');
-
-module.exports = {
-    loop,
-    toDictionary,
-    isArrayIndex,
-    arrayLast,
-    arrayAll,
-    arraySome,
-    isDistinct,
-    loopPairs,
-    arrayMax,
-    arrayMin,
-    arrayCount,
-    arrayMin,
-    stringSuffix,
-};
-
-/**
- * Return true to break out of loop.
- */
-function loop(array, lambda) {
-    let log = false;
-    scope(loop.name, context => {
-        merge(context, {array});
-        merge(context, {lambda});
-
-        assert(() => isArray(array));
-        assert(() => isFunction(lambda));
-    
-        for (let index = 0; index < array.length; index++) {
-            merge(context, {index});
-            let element = array[index];
-            merge(context, {element});
-            let breakLoop = lambda(element, index);
-            if (breakLoop) {
-                break;
-            }
-        }
-    })
-}
-
-function toDictionary(array, property) {
-    let result = {};
-
-    scope(toDictionary.name, context => {
-    
-        loop(array, a => {
-            let key = a[property];
-            merge(context, {key});
-            assert(() => isDefined(key));
-    
-            if (result[key]) {
-                throw new Error('Duplicate key');
-            }
-            result[key] = a; 
-        });
-    })
-
-    return result;
-}
-
-function isArrayIndex(array, index) {
-    let result;
-    scope(isArrayIndex.name, x => {
-        merge(x,{array});
-        merge(x,{index});
-        let ia = isArray(array);
-        merge(x,{ia});
-        let is = isString(array);
-        merge(x,{is});
-        assert(() => ia || is);
-        let ii = isInteger(index);
-        merge(x,{ii});
-        assert(() => ii);
-        let lower = 0 <= index;
-        let upper = index < array.length;
-        merge(x,{lower});
-        merge(x,{upper});
-        result = lower && upper;
-    });
-    return result;
-}
-
-function arrayLast(array) {
-    assert(() => isArray(array) || isString(array));
-    return array[array.length - 1];
-}
-function arrayMax(array) {
-    let max;
-
-    scope(arrayAll.name, context => {
-        assert(() => isArray(array));
-        
-        max = array[0]
-
-        loop(array, a => {
-            if (a > max) {
-                max = a;
-            }
-        })
-    });
-
-    return max;
-}
-function arrayMin(array) {
-    let min;
-
-    scope(arrayAll.name, context => {
-        assert(() => isArray(array));
-        
-        min = array[0]
-
-        loop(array, a => {
-            if (a < min) {
-                min = a;
-            }
-        })
-    });
-
-    return min;
-}
-
-/**
- * Returns true if array is empty
- * or if predicate is true for each element
- * of the array
- * @param {*} array 
- * @param {*} predicate 
- */
-function arrayAll(array, predicate) {
-    let success = true;
-
-    scope(arrayAll.name, context => {
-        assert(() => isArray(array));
-
-        loop(array, a => {
-            if (!predicate(a)) {
-                success = false;
-                return true;
-            }
-        })
-    });
-
-    return success;
-}
-
-/**
- * Returns false if array is empty
- * or if predicate is true for some element
- * of the array
- * @param {*} array 
- * @param {*} predicate 
- */
-function arraySome(array, predicate) {
-    let success = false;
-
-    scope(arraySome.name, context => {
-        assert(() => isArray(array));
-
-        loop(array, a => {
-            if (predicate(a)) {
-                success = true;
-                return true;
-            }
-        })
-    });
-
-    return success;
-}
-
-function loopPairs(array, lambda) {
-    scope(loopPairs.name, context => {
-        loop(array, (a, i) => {
-            let result;
-            loop(array, (b, j) => {
-                if (j <= i) {
-                    return;
-                }
-    
-                result = lambda(a, b);
-                if (result) {
-                    return true;
-                }
-            });
-            if (result) {
-                return true;
-            }
-        });
-    });
-}
-
-function isDistinct(array) {
-    let success = true;
-
-    scope(isDistinct.name, context => {
-        assert(() => isArray(array));
-
-        loopPairs(array, (a, b) => {
-            if (a === b) {
-                success = false;
-            }
-        });
-    });
-
-    return success;
-}
-
-
-function arrayCount(array, predicate) {
-    let count = 0;
-
-    scope(arrayCount.name, context => {
-        assert(() => isArray(array));
-
-        loop(array, a => {
-            if (predicate(a)) {
-                count++;
-            }
-        })
-    });
-
-    return count;
-}
-
-function stringSuffix(string, count) {
-    let result;
-    scope(stringSuffix.name, context => {
-        assert(() => isString(string));
-
-        assert(() => isInteger(count));
-        assert(() => 0 <= count);
-        assert(() => count <= string.length);
-
-        result = string.substring(string.length - count);
-    });
-    return result;
-}
-},{"./core":24,"./library/assert":28,"./library/isArray":33,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./log":41}],43:[function(require,module,exports){
-require("./tests/ask/ask.js");
-require("./tests/prayersAreEqual/prayersAreEqual.js");
-},{"./tests/ask/ask.js":44,"./tests/prayersAreEqual/prayersAreEqual.js":45}],44:[function(require,module,exports){
-(function (__filename){
-
-const u = require("wlj-utilities");
-const ask = require("../../library/ask.js");
-
-u.scope(__filename, x => {
-    let actual;
-    let expected;
-
-    let userId = "1234";
-
-    actual = ask({ letter: 'J', petition: 'Wisdom',"userId":userId });
-    expected = {"letter":9,"petition":1,"userId":userId};
-    u.assertIsEqualJson(() => actual, () => expected);
-
-    actual = ask({ letter: 'B', petition: 'Salvation',"userId":userId });
-    expected = {"letter":1,"petition":0,"userId":userId};
-    u.assertIsEqualJson(() => actual, () => expected);
-
-    actual = ask({ letter: 'B', petition: 'Patience',"userId":userId });
-    expected = {"letter":1,"petition":2,"userId":userId};
-    u.assertIsEqualJson(() => actual, () => expected);
-});
-
-}).call(this,"/tests/ask/ask.js")
-},{"../../library/ask.js":"/library/ask.js","wlj-utilities":21}],45:[function(require,module,exports){
-(function (__filename){
-
-const u = require("wlj-utilities");
-
-const prayersAreEqual = require("../../library/prayersAreEqual.js");
-
-u.scope(__filename, x => {
-    u.assert(() => prayersAreEqual({
-        userId: '1234',
-        letter: 'J',
-        petition: 'Wisdom',
-    }, {
-        userId: '1234',
-        letter: 'J',
-        petition: 'Wisdom',
-    }));
-    // Different user Ids
-    u.assert(() => !prayersAreEqual({
-        userId: '1235',
-        letter: 'J',
-        petition: 'Wisdom',
-    }, {
-        userId: '1234',
-        letter: 'J',
-        petition: 'Wisdom',
-    }));
-    // Different letters
-    u.assert(() => !prayersAreEqual({
-        userId: '1234',
-        letter: 'K',
-        petition: 'Wisdom',
-    }, {
-        userId: '1234',
-        letter: 'J',
-        petition: 'Wisdom',
-    }));
-    // Different petitions
-    u.assert(() => !prayersAreEqual({
-        userId: '1234',
-        letter: 'J',
-        petition: 'Wisdom',
-    }, {
-        userId: '1234',
-        letter: 'J',
-        petition: 'Salvation',
-    }));
-});
-
-}).call(this,"/tests/prayersAreEqual/prayersAreEqual.js")
-},{"../../library/prayersAreEqual.js":"/library/prayersAreEqual.js","wlj-utilities":21}],"/library/ask.js":[function(require,module,exports){
+},{}],"/library/ask.js":[function(require,module,exports){
 const u = require('wlj-utilities');
 const letters = require('./letters');
 const petitions = require('./petitions');
@@ -1974,7 +1342,13 @@ const countries = [
 ];
 
 module.exports = countries;
-},{}],"/library/letters.js":[function(require,module,exports){
+},{}],"/library/include.js":[function(require,module,exports){
+// This is so a browserify build picks up these dependencies
+// And makes them accessible through the browser.
+// Requiring them directly didn't seem to work.
+
+module.exports['wlj-utilities'] = require('wlj-utilities');
+},{"wlj-utilities":1}],"/library/letters.js":[function(require,module,exports){
 module.exports = [
     'A',
     'B',
@@ -2050,9 +1424,9 @@ u.bumpPackageVersion(__dirname);
 
 execSync('npm publish');
 }).call(this,"/library")
-},{"../test":43,"child_process":46,"path":48,"wlj-utilities":1}],46:[function(require,module,exports){
-
-},{}],47:[function(require,module,exports){
+},{"../test":21,"child_process":22,"path":24,"wlj-utilities":1}],22:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"dup":21}],23:[function(require,module,exports){
 exports.endianness = function () { return 'LE' };
 
 exports.hostname = function () {
@@ -2103,7 +1477,7 @@ exports.homedir = function () {
 	return '/'
 };
 
-},{}],48:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -2409,7 +1783,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":49}],49:[function(require,module,exports){
+},{"_process":25}],25:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 

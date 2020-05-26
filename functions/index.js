@@ -10,10 +10,14 @@ const {
 const prayersRoute = 'prayers';
 
 exports.health = functions.https.onRequest(async (req, res) => {
+    allowCORS(res);
+
     res.json({success:true});
 });
 
 exports.ask = functions.https.onRequest(async (req, res) => {
+    allowCORS(res);
+
     let userId = req.query.userId;
 
     let result = ask({
@@ -51,7 +55,14 @@ exports.ask = functions.https.onRequest(async (req, res) => {
 });
 
 exports.prayers = functions.https.onRequest(async (req, res) => {
+    allowCORS(res);
+    
     let prayers = admin.database().ref(`/${prayersRoute}`);
     let r = await prayers.once('value');
     res.json(r);
 });
+
+function allowCORS(res) {
+  res.set('Access-Control-Allow-Origin', "*")
+  res.set('Access-Control-Allow-Methods', 'GET, POST')
+}

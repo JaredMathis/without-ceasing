@@ -30,8 +30,8 @@ exports.ask = functions.https.onRequest(async (req, res) => {
         let keys = Object.keys(allUserRequests);
         console.log({allUserRequests});
         for (let key of keys) {
-            let request = allUserRequests[key];
-            if (prayersAreEqual(result, request)) {
+            let prayer = allUserRequests[key];
+            if (prayersAreEqual(result, prayer)) {
                 res.json({
                     success:false,
                     message:'Duplicate prayer'
@@ -44,9 +44,9 @@ exports.ask = functions.https.onRequest(async (req, res) => {
     let userRequestsChild = await userRequests.push();
     await userRequestsChild.set(result);
 
-    let requests = admin.database().ref(`/${prayersRoute}`);
-    let requestsChild = await requests.push();
-    await requestsChild.set(result);
+    let prayers = admin.database().ref(`/${prayersRoute}`);
+    let prayersChild = await prayers.push();
+    await prayersChild.set(result);
 
     res.json({success:true});
 });

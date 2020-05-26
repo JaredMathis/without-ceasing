@@ -5,25 +5,29 @@ const assert = require('./assert');
 const file = require('./file');
 const tools = require('./tools');
 const commandLine = require('./commandLine');
+const index = require('./index');
 
 module.exports = {};
-log.merge(module.exports, core);
-log.merge(module.exports, log);
-log.merge(module.exports, assert);
-log.merge(module.exports, file);
-log.merge(module.exports, tools);
-log.merge(module.exports, commandLine);
-},{"./assert":2,"./commandLine":3,"./core":4,"./file":5,"./log":6,"./tools":7}],2:[function(require,module,exports){
+index.merge(module.exports, core);
+index.merge(module.exports, log);
+index.merge(module.exports, assert);
+index.merge(module.exports, file);
+index.merge(module.exports, tools);
+index.merge(module.exports, commandLine);
+index.merge(module.exports, index);
+},{"./assert":2,"./commandLine":3,"./core":4,"./file":5,"./index":6,"./log":19,"./tools":20}],2:[function(require,module,exports){
+const scope = require('./library/scope');
+const isUndefined = require('./library/isUndefined');
+const merge = require('./library/merge');
+const assert = require('./library/assert');
+
 const {
-    scope,
-    merge,
     consoleLog,
     logProperties,
 } = require('./log');
 
 const {
     isDefined,
-    isUndefined,
     processExit,
     isInteger,
     isFunction,
@@ -32,7 +36,6 @@ const {
 const fs = require('fs');
 
 module.exports = {
-    assert,
     assertFileExists,
     assertAtLeast,
     assertAtMost,
@@ -41,39 +44,8 @@ module.exports = {
     assertIsEqualJson,
 };
 
-function assert(b, exitLambda) {
-
-    return scope(assert.name, context => {
-        let log = false;
-
-        if (log) console.log('assert entered');
-
-        let result;
-        if (isFunction(b)) {
-            result = b();
-        } else {
-            result = b;
-        }
-
-        if (result === true) {
-            if (log) console.log('assert satisified');
-            return;
-        }
-
-        merge(context, {result});
-        merge(context, {b});
-        return assertError(exitLambda);
-    });
-}
-
-function assertError(exitLambda) {
-    return scope(assertError.name, context => {
-        logProperties(context);
-        if (isUndefined(exitLambda)) {
-            exitLambda = processExit;
-        }
-        exitLambda();
-    });
+function assertError(name) {
+    throw new Error('Assert error: ' + name);
 }
 
 function fileExists(fileName) {
@@ -121,7 +93,7 @@ function assertIsEqual(left, right) {
         if (equals) {
             return;
         }
-        return assertError();
+        return assertError(assertIsEqual.name);
     });
 }
 
@@ -152,7 +124,7 @@ function assertIsEqualJson(left, right) {
         if (equals) {
             return;
         }
-        return assertError();
+        return assertError(assertIsEqualJson.name);
     });
 }
 
@@ -168,7 +140,7 @@ function assertAtLeast(left, right) {
         if (atLeast) {
             return;
         }
-        return assertError();
+        return assertError(assertAtLeast.name);
     });
 }
 
@@ -184,27 +156,23 @@ function assertAtMost(left, right) {
         if (atMost) {
             return;
         }
-        return assertError();
+        return assertError(assertAtMost.name);
     });
 }
-},{"./core":4,"./log":6,"fs":8}],3:[function(require,module,exports){
+},{"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./log":19,"fs":46}],3:[function(require,module,exports){
 (function (process){
 const { 
     isArray,
     isString,
 } = require('./core');
 
-const { 
-    scope,
-} = require('./log');
+const scope = require('./library/scope');
+const assert = require('./library/assert');
+const merge = require('./library/merge');
 
 const { 
     loop,
 } = require('./tools');
-
-const { 
-    assert,
-} = require('./assert');
 
 const fs = require('fs');
 const path = require('path');
@@ -216,6 +184,8 @@ module.exports = {
     commandLine,
     fn,
     baseDirectory: '.',
+    /** Whether or not this is the wlj-utilities NPM package */
+    isWljUtilitiesPackage: false
 };
 
 function commandLine() {
@@ -248,6 +218,7 @@ function commandLine() {
 function fn(args) {
     let result = [];
     scope(fn.name, x => {
+        merge(x, {args});
         assert(() => isArray(args));
 
         if (args.length !== 1) {
@@ -268,13 +239,13 @@ function fn(args) {
         let fnFile = path.join(libDirectory, fnName + '.js');
         assert(() => !fs.existsSync(fnFile));
         fs.writeFileSync(fnFile, `
-const u = require("wlj-utilities");
+${module.exports.isWljUtilitiesPackage ? 'const scope = require("./scope");' : 'const u = require("wlj-utilities");' }
 
 module.exports = ${fnName};
 
 function ${fnName}() {
     let result;
-    u.scope(${fnName}.name, x => {
+    ${module.exports.isWljUtilitiesPackage ? '' : 'u.'}scope(${fnName}.name, x => {
 
     });
     return result;
@@ -298,7 +269,8 @@ function ${fnName}() {
         let testFile = path.join(fnTestDirectory, fnName + '.js');
         assert(() => !fs.existsSync(testFile));
         fs.writeFileSync(testFile, `
-const u = require("wlj-utilities");
+const u = require("${module.exports.isWljUtilitiesPackage ? '../../all' : 'wlj-utilities' }");
+
 const ${fnName} = require("../../${library}/${fnName}.js");
 
 u.scope(__filename, x => {
@@ -311,32 +283,41 @@ u.scope(__filename, x => {
         let allTestsFile = path.join(module.exports.baseDirectory, 'test.js');
         if (!fs.existsSync(allTestsFile)) {
             fs.writeFileSync(allTestsFile, '');
+            result.push('Created ' + allTestsFile);
+        } else {
+            result.push('Modified ' + allTestsFile);
         }
         fs.appendFileSync(allTestsFile, EOL);
         fs.appendFileSync(allTestsFile, `require("./${testFile}");`)
+
+        let indexFile = path.join(module.exports.baseDirectory, 'index.js');
+        if (!fs.existsSync(indexFile)) {
+            fs.writeFileSync(indexFile, 'module.exports = {};');
+            result.push('Created ' + indexFile);
+        } else {
+            result.push('Modified ' + indexFile);
+        }
+        fs.appendFileSync(indexFile, EOL);
+        fs.appendFileSync(indexFile, `module.exports.${fnName} = require("./library/${fnName}.js");`);
         result.push('Finished');
     });
 
     return result.join(EOL);
 }
 }).call(this,require('_process'))
-},{"./assert":2,"./core":4,"./log":6,"./tools":7,"_process":11,"fs":8,"os":9,"path":10}],4:[function(require,module,exports){
+},{"./core":4,"./library/assert":7,"./library/merge":13,"./library/scope":16,"./tools":20,"_process":49,"fs":46,"os":47,"path":48}],4:[function(require,module,exports){
 (function (process){
-/**
- * These functions have no dependencies
- */
+const isUndefined = require('./library/isUndefined');
 
 module.exports = {
     processExit,
     isEqualJson,
     isArray,
-    isUndefined,
     isDefined,
     isInteger,
     range,
     isFunction,
     isString,
-    throws,
 }
 
 function isArray(a) {
@@ -348,16 +329,17 @@ function isString(s) {
 }
 
 function processExit() {
+    let log = true;
+    if (log) {
+        let stack = new Error().stack;
+        console.log(stack);
+    }
     console.log('Calling process.exit(1)');
     process.exit(1);
 }
 
 function isEqualJson(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function isUndefined(a) {
-    return typeof a === 'undefined';
 }
 
 function isDefined(a) {
@@ -383,30 +365,20 @@ function range(count, start) {
     }
     return result;
 }
-
-function throws(lambda) {
-    try {
-        lambda();
-        return false;
-    } catch (e) {
-        return true;
-    }
-}
 }).call(this,require('_process'))
-},{"_process":11}],5:[function(require,module,exports){
+},{"./library/isUndefined":12,"_process":49}],5:[function(require,module,exports){
 const {
     isDefined,
     isString,
-    isUndefined,
 } = require('./core');
 
-const {
-    scope,
-    merge,
-} = require('./log');
+const scope = require('./library/scope');
+const isUndefined = require('./library/isUndefined');
+
+const merge = require('./library/merge');
+const assert = require('./library/assert');
 
 const {
-    assert,
     assertFileExists,
     assertIsEqual,
 } = require('./assert');
@@ -492,13 +464,14 @@ function deleteDirectory(directory) {
     });
 }
 
+const packageJson = 'package.json';
 
-function getPackageVersion(packagePath) {
+function getPackageVersion(packageDirectory) {
     let version;
     scope(getPackageVersion.name, x => {
-        if (isUndefined(packagePath)) {
-            packagePath = './package.json';
-        }
+        assert(() => isString(packageDirectory));
+        let packagePath = path.join(packageDirectory, packageJson);
+
         let package = require(packagePath);
 
         version = package.version;
@@ -508,13 +481,11 @@ function getPackageVersion(packagePath) {
     return version;
 }
 
-function bumpPackageVersion(packagePath) {
+function bumpPackageVersion(packageDirectory) {
+    let log = true;
     scope(bumpPackageVersion.name, x => {
-        if (isUndefined(packagePath)) {
-            packagePath = './package.json';
-        }
-
-        let version = getPackageVersion(packagePath);
+        assert(() => isString(packageDirectory));
+        let version = getPackageVersion(packageDirectory);
         merge(x, {version});
 
         let parts = version.split('.');
@@ -527,32 +498,196 @@ function bumpPackageVersion(packagePath) {
 
         let nextVersion = parts.join('.');
 
+        let packagePath = path.join(packageDirectory, packageJson);
+
         let package = require(packagePath);
         package.version = nextVersion;
 
         let json = JSON.stringify(package, null, 2);
         fs.writeFileSync(packagePath, json);
+        if (log) console.log(`Updated version to ${nextVersion} in ` + packagePath);
     })
 }
-},{"./assert":2,"./core":4,"./log":6,"./tools":7,"fs":8,"path":10}],6:[function(require,module,exports){
-const {
-    processExit,
-    isUndefined,
-    isFunction,
-} = require('./core');
+},{"./assert":2,"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./tools":20,"fs":46,"path":48}],6:[function(require,module,exports){
+module.exports = {};
+module.exports.throws = require("./library/throws.js");
+module.exports.assertIsJsonResponse = require("./library/assertIsJsonResponse.js");
+module.exports.assertIsEqualJson = require("./library/assertIsEqualJson.js");
+module.exports.assert = require("./library/assert.js");
+module.exports.scope = require("./library/scope.js");
+module.exports.propertiesToString = require("./library/propertiesToString.js");
+module.exports.toQueryString = require("./library/toQueryString.js");
+module.exports.propertiesAreEqual = require("./library/propertiesAreEqual.js");
+module.exports.assertIsStringArray = require("./library/assertIsStringArray.js");
+module.exports.assertOnlyContainsProperties = require("./library/assertOnlyContainsProperties.js");
+module.exports.merge = require("./library/merge.js");
+},{"./library/assert.js":7,"./library/assertIsEqualJson.js":8,"./library/assertIsJsonResponse.js":9,"./library/assertIsStringArray.js":10,"./library/assertOnlyContainsProperties.js":11,"./library/merge.js":13,"./library/propertiesAreEqual.js":14,"./library/propertiesToString.js":15,"./library/scope.js":16,"./library/throws.js":17,"./library/toQueryString.js":18}],7:[function(require,module,exports){
 
-module.exports = {
-    scope,
-    consoleLog,
-    merge,
-    logProperties,
+const scope = require("./scope");
+const merge = require("./merge");
+const isFunction = require("../core").isFunction;
+
+module.exports = assert;
+
+function assert(b) {
+    let result;
+    scope(assert.name, x => {
+        merge(x, {b});
+
+        let bValue;
+        if (isFunction(b)) {
+            bValue = b();
+        } else {
+            bValue = b;
+        }
+        merge(x, {bValue});
+
+        if (bValue) {
+            return;
+        }
+
+        throw new Error('assert failed');
+    });
+    return result;
 }
 
-// TODO: Validate arguments of framework
+},{"../core":4,"./merge":13,"./scope":16}],8:[function(require,module,exports){
+const assert = require("./assert");
+const scope = require('./scope');
+const isDefined = require("../core").isDefined;
+const isFunction = require("../core").isFunction;
+const merge = require("./merge");
 
-let indent = 0;
+module.exports = assertIsEqualJson;
 
-let context = {};
+function assertIsEqualJson(left, right) {
+    let result;
+    scope(assertIsEqualJson.name, x => {
+        merge(x, {left});
+        merge(x, {right});
+        assert(() => isDefined(left));
+        assert(() => isDefined(right));
+
+        let leftValue;
+        if (isFunction(left)) {
+            leftValue = left();
+        } else {
+            leftValue = left;
+        }
+        merge(x, {leftValue});
+
+        let rightValue;
+        if (isFunction(right)) {
+            rightValue = right();
+        } else {
+            rightValue = right;
+        }
+        merge(x, {rightValue});
+
+        assert(() => JSON.stringify(leftValue) === JSON.stringify(rightValue));
+    });
+    return result;
+}
+
+},{"../core":4,"./assert":7,"./merge":13,"./scope":16}],9:[function(require,module,exports){
+const scope = require("./scope");
+const assert = require("./assert");
+const merge = require("./merge");
+const isDefined = require("./../core").isDefined;
+const isFunction = require("./../core").isFunction;
+const isInteger = require("./../core").isInteger;
+
+module.exports = assertIsJsonResponse;
+
+function assertIsJsonResponse(response, status, body) {
+    let result;
+    scope(assertIsJsonResponse.name, x => {
+        merge(x, {response});
+        merge(x, {status});
+        merge(x, {body});
+
+        assert(() => isDefined(response));
+        assert(() => isInteger(status));
+        assert(() => isDefined(body));
+        
+        assert(() => response.statusCode === status);
+        assert(() => isDefined(response.body));
+        assert(() => isFunction(response.body.toString));
+
+        let actualJson = response.body.toString();
+        merge(x, {actualJson});
+
+        let expectedJson = JSON.stringify(body);
+        merge(x, {expectedJson});
+
+        assert(() => actualJson === expectedJson);
+    });
+    return result;
+}
+
+},{"./../core":4,"./assert":7,"./merge":13,"./scope":16}],10:[function(require,module,exports){
+
+const assert = require("./assert");
+const scope = require("./scope");
+const isArray = require("./../core").isArray;
+const isString = require("./../core").isString;
+
+module.exports = assertIsStringArray;
+
+function assertIsStringArray(array) {
+    let result;
+    scope(assertIsStringArray.name, x => {
+        assert(() => isArray(array));
+
+        for (let a of array) {
+            assert(() => isString(a));
+        }
+    });
+    return result;
+}
+
+},{"./../core":4,"./assert":7,"./scope":16}],11:[function(require,module,exports){
+
+const scope = require("./scope");
+const assert = require("./assert");
+const merge = require("./merge");
+const assertIsStringArray = require("./assertIsStringArray");
+const isDefined = require("./../core").isDefined;
+
+module.exports = assertOnlyContainsProperties;
+
+function assertOnlyContainsProperties(object, properties) {
+    let result;
+    scope(assertOnlyContainsProperties.name, x => {
+        merge(x, {object});
+        merge(x, {properties});
+        
+        assert(() => isDefined(object));
+        assertIsStringArray(properties);
+
+        for (let key in object) {
+            assert(() => properties.includes(key));
+        }
+
+        for (let property of properties) {
+            assert(() => object.hasOwnProperty(property));
+        }
+    });
+    return result;
+}
+
+},{"./../core":4,"./assert":7,"./assertIsStringArray":10,"./merge":13,"./scope":16}],12:[function(require,module,exports){
+module.exports = isUndefined;
+
+function isUndefined(a) {
+    return typeof a === 'undefined';
+}
+},{}],13:[function(require,module,exports){
+
+const scope = require("./scope");
+const isUndefined = require('./isUndefined')
+
+module.exports = merge;
 
 /**
  * Does something special with undefined.
@@ -573,6 +708,222 @@ function merge(a, b) {
         }
     }
 }
+
+},{"./isUndefined":12,"./scope":16}],14:[function(require,module,exports){
+
+const scope = require("./scope");
+const assert = require("./assert");
+const assertOnlyContainsProperties = require("./assertOnlyContainsProperties");
+const assertIsStringArray = require("./assertIsStringArray");
+
+module.exports = propertiesAreEqual;
+
+function propertiesAreEqual(a, b, properties) {
+    let result;
+    scope(propertiesAreEqual.name, x => {
+
+        assertIsStringArray(properties);
+
+        assertOnlyContainsProperties(a, properties);
+        assertOnlyContainsProperties(b, properties);
+
+        result = true;
+        for (let property in a) {
+            let equal = a[property] === b[property];
+            if (!equal) {
+                result = false;
+                return;
+            }
+        }
+        
+    });
+    return result;
+}
+
+},{"./assert":7,"./assertIsStringArray":10,"./assertOnlyContainsProperties":11,"./scope":16}],15:[function(require,module,exports){
+const isFunction = require('./../core').isFunction;
+const isUndefined = require('./isUndefined');
+const truncateStringTo = require('./../log').truncateStringTo;
+
+module.exports = propertiesToString;
+
+function propertiesToString(object, prefix) {
+    if (isUndefined(prefix)) {
+        prefix = '';
+    }
+
+    let result;
+
+    result = [];
+
+    const maxCharacters = 120;
+    for (let property in object) {
+        let o = {};
+        o[property] = object[property];
+
+        if (isFunction(o[property])) {
+            o[property] = o[property].toString();
+        }
+
+        let json = JSON.stringify(o);
+        let trimmed = truncateStringTo(json, maxCharacters);
+
+        result.push(prefix + trimmed);
+    }
+    return result;
+}
+
+},{"./../core":4,"./../log":19,"./isUndefined":12}],16:[function(require,module,exports){
+const isString = require("../core").isString;
+const isFunction = require("../core").isFunction;
+const processExit = require("../core").processExit;
+const propertiesToString = require("./propertiesToString");
+
+module.exports = scope;
+
+let count = 0;
+
+function scope(name, lambda) {
+    count++;
+
+    let result;
+    
+    if (!isString(name)) {
+        error(scope.name, 'Expecting name to be string');
+    }
+    if (!isFunction(lambda)) {
+        error(scope.name, 'Expecting lambda to be function');
+    }
+
+    const x = {};
+    try {
+        result = lambda(x);
+    } catch (e) {
+        count--;
+
+        if (count === 0) {
+            let indent = '  ';
+            console.log(name + ' entered');
+            let properties = propertiesToString(x, indent);
+            for (let p of properties) {
+                console.log(p);
+            }
+
+            let current = e;
+            while ((current instanceof ScopeError)) {
+                console.log(indent + current.name + ' entered');
+                indent += '  '
+                let properties = propertiesToString(current.context, indent);
+                for (let p of properties) {
+                    console.log(p);
+                }
+                current = current.innerError;
+            }
+
+            console.log(e);
+            processExit();
+        } else {
+            throw new ScopeError(name, x, e);
+        }
+    }
+
+    count--;
+
+    return result;
+}
+
+function error(name, message) {
+    throw new Error(`Error: ${name}: ${message}`)
+}
+
+function ScopeError(name, context, innerError) {
+    this.name = name;
+    this.context = context;
+    this.innerError = innerError;
+}
+
+//ScopeError.prototype = new Error();
+},{"../core":4,"./propertiesToString":15}],17:[function(require,module,exports){
+const {
+    isFunction,
+} = require("./../core");
+
+const scope = require("./../library/scope");
+const assert = require("./../library/assert");
+
+module.exports = throws;
+
+function throws(lambda) {
+    let result;
+    scope(throws.name, x => {
+        assert(() => isFunction(lambda));
+        try {
+            lambda();
+            result = false;
+            return;
+        } catch (e) {
+            result = true;
+            return;
+        }
+    });
+    return result;
+}
+
+},{"./../core":4,"./../library/assert":7,"./../library/scope":16}],18:[function(require,module,exports){
+
+const scope = require("./scope");
+const assert = require("./assert");
+const merge = require("./merge");
+const isDefined = require("./../core").isDefined;
+const isString = require("./../core").isString;
+
+module.exports = toQueryString;
+
+function toQueryString(object) {
+    let result;
+    scope(toQueryString.name, x => {
+        merge(x, {object});
+        assert(() => isDefined(object));
+
+        result = '';
+        let first = true;
+        for (let key in object) {
+            merge(x, {key});
+            if (first) {
+                result += "?";
+                first = false;
+            } else {
+                result += '&';
+            }
+            result += key;
+            let value = object[key];
+            merge(x, {value});
+            assert(() => isString(value));
+            result += '=';
+            result += value;
+        }
+    });
+    return result;
+}
+
+},{"./../core":4,"./assert":7,"./merge":13,"./scope":16}],19:[function(require,module,exports){
+const {
+    processExit,
+    isUndefined,
+    isFunction,
+} = require('./core');
+
+module.exports = {
+    consoleLog,
+    logProperties,
+    truncateStringTo,
+}
+
+// TODO: Validate arguments of framework
+
+let indent = 0;
+
+let context = {};
 
 function isString(o) {
     return o.toString() === o;
@@ -701,25 +1052,24 @@ function consoleLog(message) {
 
     if (log) console.log('consoleLog leaving');
 }
-},{"./core":4}],7:[function(require,module,exports){
+},{"./core":4}],20:[function(require,module,exports){
+const isUndefined = require('./library/isUndefined');
+const merge = require('./library/merge');
+const assert = require('./library/assert');
+
 const {
     isArray,
     isFunction,
     isDefined,
-    isUndefined,
     isString,
     isInteger,
 } = require('./core');
 
-const {
-    scope,
-    merge,
-    consoleLog,
-} = require('./log');
+const scope = require('./library/scope');
 
 const {
-    assert
-} = require('./assert');
+    consoleLog,
+} = require('./log');
 
 module.exports = {
     loop,
@@ -782,9 +1132,25 @@ function toDictionary(array, property) {
 }
 
 function isArrayIndex(array, index) {
-    assert(() => isArray(array) || isString(array));
-    assert(() => isInteger(index));
-    return 0 <= index && index < array.length;
+    let result;
+    scope(isArrayIndex.name, x => {
+        merge(x,{array});
+        merge(x,{index});
+        let ia = isArray(array);
+        merge(x,{ia});
+        let is = isString(array);
+        merge(x,{is});
+        assert(() => ia || is);
+        let ii = isInteger(index);
+        merge(x,{ii});
+        assert(() => ii);
+        let lower = 0 <= index;
+        let upper = index < array.length;
+        merge(x,{lower});
+        merge(x,{upper});
+        result = lower && upper;
+    });
+    return result;
 }
 
 function arrayLast(array) {
@@ -941,7 +1307,641 @@ function stringSuffix(string, count) {
     });
     return result;
 }
-},{"./assert":2,"./core":4,"./log":6}],"/library/ask.js":[function(require,module,exports){
+},{"./core":4,"./library/assert":7,"./library/isUndefined":12,"./library/merge":13,"./library/scope":16,"./log":19}],21:[function(require,module,exports){
+arguments[4][1][0].apply(exports,arguments)
+},{"./assert":22,"./commandLine":23,"./core":24,"./file":25,"./index":26,"./log":41,"./tools":42,"dup":1}],22:[function(require,module,exports){
+arguments[4][2][0].apply(exports,arguments)
+},{"./core":24,"./library/assert":28,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./log":41,"dup":2,"fs":46}],23:[function(require,module,exports){
+(function (process){
+const { 
+    isString,
+} = require('./core');
+
+const scope = require('./library/scope');
+const assert = require('./library/assert');
+const merge = require('./library/merge');
+const isArray = require('./library/isArray');
+
+const { 
+    loop,
+} = require('./tools');
+
+const fs = require('fs');
+const path = require('path');
+const { EOL } = require('os');
+
+let verbose = false;
+
+module.exports = {
+    commandLine,
+    fn,
+    baseDirectory: '.',
+    /** Whether or not this is the wlj-utilities NPM package */
+    isWljUtilitiesPackage: false
+};
+
+function commandLine() {
+    scope(commandLine.name, x=> {
+        let commands = {
+            fn,
+        };
+
+        let command = commands[process.argv[2]];
+        if (!command) {
+            console.log('Please use a command-line argument.');
+            console.log('Valid command-line arguments:');
+            loop(Object.keys(commands), c => {
+                console.log(c);
+            });
+            return;
+        }
+        
+        let remaining = process.argv.slice(3);
+        if (verbose) {
+            console.log('Calling: ' + command.name);
+            console.log('Args: ' + remaining);
+        }
+        let result = command(remaining);
+        console.log(result);
+    
+    });
+}
+
+function fn(args) {
+    let result = [];
+    scope(fn.name, x => {
+        merge(x, {args});
+        assert(() => isArray(args));
+
+        if (args.length !== 1) {
+            result.push('Expecting 1 argument');
+            return;
+        }
+
+        let fnName = args[0];
+        assert(() => isString(fnName));
+
+        const library = 'library';
+        let libDirectory = path.join(module.exports.baseDirectory, library);
+        if (!fs.existsSync(libDirectory)) {
+            fs.mkdirSync(libDirectory);
+            result.push('Created ' + libDirectory);
+        }
+
+        let fnFile = path.join(libDirectory, fnName + '.js');
+        assert(() => !fs.existsSync(fnFile));
+        fs.writeFileSync(fnFile, `
+${module.exports.isWljUtilitiesPackage ? 'const scope = require("./scope");' : 'const u = require("wlj-utilities");' }
+
+module.exports = ${fnName};
+
+function ${fnName}() {
+    let result;
+    ${module.exports.isWljUtilitiesPackage ? '' : 'u.'}scope(${fnName}.name, x => {
+
+    });
+    return result;
+}
+`);
+        assert(() => fs.existsSync(fnFile));
+        result.push('Created ' + fnFile);
+
+        let testsDirectory = path.join(module.exports.baseDirectory, 'tests');
+        if (!fs.existsSync(testsDirectory)) {
+            fs.mkdirSync(testsDirectory);
+            result.push('Created ' + testsDirectory);
+        }
+
+        let fnTestDirectory = path.join(testsDirectory, fnName);
+        if (!fs.existsSync(fnTestDirectory)) {
+            fs.mkdirSync(fnTestDirectory);
+            result.push('Created ' + fnTestDirectory);
+        }
+
+        let testFile = path.join(fnTestDirectory, fnName + '.js');
+        assert(() => !fs.existsSync(testFile));
+        fs.writeFileSync(testFile, `
+const u = require("${module.exports.isWljUtilitiesPackage ? '../../all' : 'wlj-utilities' }");
+
+const ${fnName} = require("../../${library}/${fnName}.js");
+
+u.scope(__filename, x => {
+
+});
+`);
+        assert(() => fs.existsSync(testFile));
+        result.push('Created ' + testFile);
+
+        let allTestsFile = path.join(module.exports.baseDirectory, 'test.js');
+        if (!fs.existsSync(allTestsFile)) {
+            fs.writeFileSync(allTestsFile, '');
+            result.push('Created ' + allTestsFile);
+        } else {
+            result.push('Modified ' + allTestsFile);
+        }
+        fs.appendFileSync(allTestsFile, EOL);
+        fs.appendFileSync(allTestsFile, `require("./${testFile}");`)
+
+        let indexFile = path.join(module.exports.baseDirectory, 'index.js');
+        if (!fs.existsSync(indexFile)) {
+            fs.writeFileSync(indexFile, 'module.exports = {};');
+            result.push('Created ' + indexFile);
+        } else {
+            result.push('Modified ' + indexFile);
+        }
+        fs.appendFileSync(indexFile, EOL);
+        fs.appendFileSync(indexFile, `module.exports.${fnName} = require("./library/${fnName}.js");`);
+        result.push('Finished');
+    });
+
+    return result.join(EOL);
+}
+}).call(this,require('_process'))
+},{"./core":24,"./library/assert":28,"./library/isArray":33,"./library/merge":35,"./library/scope":38,"./tools":42,"_process":49,"fs":46,"os":47,"path":48}],24:[function(require,module,exports){
+(function (process){
+const isUndefined = require('./library/isUndefined');
+
+module.exports = {
+    processExit,
+    isEqualJson,
+    isDefined,
+    isInteger,
+    range,
+    isFunction,
+    isString,
+}
+
+function isString(s) {
+    return (s + "") === s;
+}
+
+function processExit() {
+    let log = true;
+    if (log) {
+        let stack = new Error().stack;
+        console.log(stack);
+    }
+    console.log('Calling process.exit(1)');
+    process.exit(1);
+}
+
+function isEqualJson(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function isDefined(a) {
+    return !isUndefined(a);
+}
+
+function isInteger(a) {
+    return parseInt(a, 10) === a;
+}
+
+function isFunction(functionToCheck) {
+    return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
+function range(count, start) {
+    if (isUndefined(start)) {
+        start = 0;
+    }
+    let result = [];
+    let max = start + count - 1;
+    for (let i = start; i <= max; i++) {
+        result.push(i);
+    }
+    return result;
+}
+}).call(this,require('_process'))
+},{"./library/isUndefined":34,"_process":49}],25:[function(require,module,exports){
+arguments[4][5][0].apply(exports,arguments)
+},{"./assert":22,"./core":24,"./library/assert":28,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./tools":42,"dup":5,"fs":46,"path":48}],26:[function(require,module,exports){
+module.exports = {};
+module.exports.throws = require("./library/throws.js");
+module.exports.assertIsJsonResponse = require("./library/assertIsJsonResponse.js");
+module.exports.assertIsEqualJson = require("./library/assertIsEqualJson.js");
+module.exports.assert = require("./library/assert.js");
+module.exports.scope = require("./library/scope.js");
+module.exports.propertiesToString = require("./library/propertiesToString.js");
+module.exports.toQueryString = require("./library/toQueryString.js");
+module.exports.propertiesAreEqual = require("./library/propertiesAreEqual.js");
+module.exports.assertIsStringArray = require("./library/assertIsStringArray.js");
+module.exports.assertOnlyContainsProperties = require("./library/assertOnlyContainsProperties.js");
+module.exports.merge = require("./library/merge.js");
+module.exports.arrayExcept = require("./library/arrayExcept.js");
+module.exports.isArray = require("./library/isArray.js");
+},{"./library/arrayExcept.js":27,"./library/assert.js":28,"./library/assertIsEqualJson.js":29,"./library/assertIsJsonResponse.js":30,"./library/assertIsStringArray.js":31,"./library/assertOnlyContainsProperties.js":32,"./library/isArray.js":33,"./library/merge.js":35,"./library/propertiesAreEqual.js":36,"./library/propertiesToString.js":37,"./library/scope.js":38,"./library/throws.js":39,"./library/toQueryString.js":40}],27:[function(require,module,exports){
+
+const scope = require("./scope");
+const isArray = require("./isArray");
+const assert = require("./assert");
+
+module.exports = arrayExcept;
+
+function arrayExcept(array, except) {
+    let result;
+    scope(arrayExcept.name, x => {
+        assert(() => isArray(array));
+        assert(() => isArray(except));
+        
+        result = [];
+
+        for (let a of array) {
+            if (except.includes(a)) {
+                continue;
+            }
+            result.push(a);
+        }
+    });
+    return result;
+}
+
+},{"./assert":28,"./isArray":33,"./scope":38}],28:[function(require,module,exports){
+arguments[4][7][0].apply(exports,arguments)
+},{"../core":24,"./merge":35,"./scope":38,"dup":7}],29:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":8}],30:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"./../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":9}],31:[function(require,module,exports){
+
+const assert = require("./assert");
+const scope = require("./scope");
+const isArray = require("./isArray");
+const isString = require("./../core").isString;
+
+module.exports = assertIsStringArray;
+
+function assertIsStringArray(array) {
+    let result;
+    scope(assertIsStringArray.name, x => {
+        assert(() => isArray(array));
+
+        for (let a of array) {
+            assert(() => isString(a));
+        }
+    });
+    return result;
+}
+
+},{"./../core":24,"./assert":28,"./isArray":33,"./scope":38}],32:[function(require,module,exports){
+arguments[4][11][0].apply(exports,arguments)
+},{"./../core":24,"./assert":28,"./assertIsStringArray":31,"./merge":35,"./scope":38,"dup":11}],33:[function(require,module,exports){
+module.exports = isArray;
+
+function isArray(a) {
+    return Array.isArray(a);
+}
+},{}],34:[function(require,module,exports){
+arguments[4][12][0].apply(exports,arguments)
+},{"dup":12}],35:[function(require,module,exports){
+arguments[4][13][0].apply(exports,arguments)
+},{"./isUndefined":34,"./scope":38,"dup":13}],36:[function(require,module,exports){
+arguments[4][14][0].apply(exports,arguments)
+},{"./assert":28,"./assertIsStringArray":31,"./assertOnlyContainsProperties":32,"./scope":38,"dup":14}],37:[function(require,module,exports){
+arguments[4][15][0].apply(exports,arguments)
+},{"./../core":24,"./../log":41,"./isUndefined":34,"dup":15}],38:[function(require,module,exports){
+arguments[4][16][0].apply(exports,arguments)
+},{"../core":24,"./propertiesToString":37,"dup":16}],39:[function(require,module,exports){
+arguments[4][17][0].apply(exports,arguments)
+},{"./../core":24,"./../library/assert":28,"./../library/scope":38,"dup":17}],40:[function(require,module,exports){
+arguments[4][18][0].apply(exports,arguments)
+},{"./../core":24,"./assert":28,"./merge":35,"./scope":38,"dup":18}],41:[function(require,module,exports){
+arguments[4][19][0].apply(exports,arguments)
+},{"./core":24,"dup":19}],42:[function(require,module,exports){
+const isUndefined = require('./library/isUndefined');
+const merge = require('./library/merge');
+const assert = require('./library/assert');
+const isArray = require('./library/isArray');
+
+const {
+    isFunction,
+    isDefined,
+    isString,
+    isInteger,
+} = require('./core');
+
+const scope = require('./library/scope');
+
+const {
+    consoleLog,
+} = require('./log');
+
+module.exports = {
+    loop,
+    toDictionary,
+    isArrayIndex,
+    arrayLast,
+    arrayAll,
+    arraySome,
+    isDistinct,
+    loopPairs,
+    arrayMax,
+    arrayMin,
+    arrayCount,
+    arrayMin,
+    stringSuffix,
+};
+
+/**
+ * Return true to break out of loop.
+ */
+function loop(array, lambda) {
+    let log = false;
+    scope(loop.name, context => {
+        merge(context, {array});
+        merge(context, {lambda});
+
+        assert(() => isArray(array));
+        assert(() => isFunction(lambda));
+    
+        for (let index = 0; index < array.length; index++) {
+            merge(context, {index});
+            let element = array[index];
+            merge(context, {element});
+            let breakLoop = lambda(element, index);
+            if (breakLoop) {
+                break;
+            }
+        }
+    })
+}
+
+function toDictionary(array, property) {
+    let result = {};
+
+    scope(toDictionary.name, context => {
+    
+        loop(array, a => {
+            let key = a[property];
+            merge(context, {key});
+            assert(() => isDefined(key));
+    
+            if (result[key]) {
+                throw new Error('Duplicate key');
+            }
+            result[key] = a; 
+        });
+    })
+
+    return result;
+}
+
+function isArrayIndex(array, index) {
+    let result;
+    scope(isArrayIndex.name, x => {
+        merge(x,{array});
+        merge(x,{index});
+        let ia = isArray(array);
+        merge(x,{ia});
+        let is = isString(array);
+        merge(x,{is});
+        assert(() => ia || is);
+        let ii = isInteger(index);
+        merge(x,{ii});
+        assert(() => ii);
+        let lower = 0 <= index;
+        let upper = index < array.length;
+        merge(x,{lower});
+        merge(x,{upper});
+        result = lower && upper;
+    });
+    return result;
+}
+
+function arrayLast(array) {
+    assert(() => isArray(array) || isString(array));
+    return array[array.length - 1];
+}
+function arrayMax(array) {
+    let max;
+
+    scope(arrayAll.name, context => {
+        assert(() => isArray(array));
+        
+        max = array[0]
+
+        loop(array, a => {
+            if (a > max) {
+                max = a;
+            }
+        })
+    });
+
+    return max;
+}
+function arrayMin(array) {
+    let min;
+
+    scope(arrayAll.name, context => {
+        assert(() => isArray(array));
+        
+        min = array[0]
+
+        loop(array, a => {
+            if (a < min) {
+                min = a;
+            }
+        })
+    });
+
+    return min;
+}
+
+/**
+ * Returns true if array is empty
+ * or if predicate is true for each element
+ * of the array
+ * @param {*} array 
+ * @param {*} predicate 
+ */
+function arrayAll(array, predicate) {
+    let success = true;
+
+    scope(arrayAll.name, context => {
+        assert(() => isArray(array));
+
+        loop(array, a => {
+            if (!predicate(a)) {
+                success = false;
+                return true;
+            }
+        })
+    });
+
+    return success;
+}
+
+/**
+ * Returns false if array is empty
+ * or if predicate is true for some element
+ * of the array
+ * @param {*} array 
+ * @param {*} predicate 
+ */
+function arraySome(array, predicate) {
+    let success = false;
+
+    scope(arraySome.name, context => {
+        assert(() => isArray(array));
+
+        loop(array, a => {
+            if (predicate(a)) {
+                success = true;
+                return true;
+            }
+        })
+    });
+
+    return success;
+}
+
+function loopPairs(array, lambda) {
+    scope(loopPairs.name, context => {
+        loop(array, (a, i) => {
+            let result;
+            loop(array, (b, j) => {
+                if (j <= i) {
+                    return;
+                }
+    
+                result = lambda(a, b);
+                if (result) {
+                    return true;
+                }
+            });
+            if (result) {
+                return true;
+            }
+        });
+    });
+}
+
+function isDistinct(array) {
+    let success = true;
+
+    scope(isDistinct.name, context => {
+        assert(() => isArray(array));
+
+        loopPairs(array, (a, b) => {
+            if (a === b) {
+                success = false;
+            }
+        });
+    });
+
+    return success;
+}
+
+
+function arrayCount(array, predicate) {
+    let count = 0;
+
+    scope(arrayCount.name, context => {
+        assert(() => isArray(array));
+
+        loop(array, a => {
+            if (predicate(a)) {
+                count++;
+            }
+        })
+    });
+
+    return count;
+}
+
+function stringSuffix(string, count) {
+    let result;
+    scope(stringSuffix.name, context => {
+        assert(() => isString(string));
+
+        assert(() => isInteger(count));
+        assert(() => 0 <= count);
+        assert(() => count <= string.length);
+
+        result = string.substring(string.length - count);
+    });
+    return result;
+}
+},{"./core":24,"./library/assert":28,"./library/isArray":33,"./library/isUndefined":34,"./library/merge":35,"./library/scope":38,"./log":41}],43:[function(require,module,exports){
+require("./tests/ask/ask.js");
+require("./tests/prayersAreEqual/prayersAreEqual.js");
+},{"./tests/ask/ask.js":44,"./tests/prayersAreEqual/prayersAreEqual.js":45}],44:[function(require,module,exports){
+(function (__filename){
+
+const u = require("wlj-utilities");
+const ask = require("../../library/ask.js");
+
+u.scope(__filename, x => {
+    let actual;
+    let expected;
+
+    let userId = "1234";
+
+    actual = ask({ letter: 'J', petition: 'Wisdom',"userId":userId });
+    expected = {"letter":9,"petition":1,"userId":userId};
+    u.assertIsEqualJson(() => actual, () => expected);
+
+    actual = ask({ letter: 'B', petition: 'Salvation',"userId":userId });
+    expected = {"letter":1,"petition":0,"userId":userId};
+    u.assertIsEqualJson(() => actual, () => expected);
+
+    actual = ask({ letter: 'B', petition: 'Patience',"userId":userId });
+    expected = {"letter":1,"petition":2,"userId":userId};
+    u.assertIsEqualJson(() => actual, () => expected);
+});
+
+}).call(this,"/tests/ask/ask.js")
+},{"../../library/ask.js":"/library/ask.js","wlj-utilities":21}],45:[function(require,module,exports){
+(function (__filename){
+
+const u = require("wlj-utilities");
+
+const prayersAreEqual = require("../../library/prayersAreEqual.js");
+
+u.scope(__filename, x => {
+    u.assert(() => prayersAreEqual({
+        userId: '1234',
+        letter: 'J',
+        petition: 'Wisdom',
+    }, {
+        userId: '1234',
+        letter: 'J',
+        petition: 'Wisdom',
+    }));
+    // Different user Ids
+    u.assert(() => !prayersAreEqual({
+        userId: '1235',
+        letter: 'J',
+        petition: 'Wisdom',
+    }, {
+        userId: '1234',
+        letter: 'J',
+        petition: 'Wisdom',
+    }));
+    // Different letters
+    u.assert(() => !prayersAreEqual({
+        userId: '1234',
+        letter: 'K',
+        petition: 'Wisdom',
+    }, {
+        userId: '1234',
+        letter: 'J',
+        petition: 'Wisdom',
+    }));
+    // Different petitions
+    u.assert(() => !prayersAreEqual({
+        userId: '1234',
+        letter: 'J',
+        petition: 'Wisdom',
+    }, {
+        userId: '1234',
+        letter: 'J',
+        petition: 'Salvation',
+    }));
+});
+
+}).call(this,"/tests/prayersAreEqual/prayersAreEqual.js")
+},{"../../library/prayersAreEqual.js":"/library/prayersAreEqual.js","wlj-utilities":21}],"/library/ask.js":[function(require,module,exports){
 const u = require('wlj-utilities');
 const letters = require('./letters');
 const petitions = require('./petitions');
@@ -951,6 +1951,7 @@ module.exports = ask;
 function ask(request) {
     let result = {};
     u.scope(ask.name, x => {
+        u.merge(x, {request});
         u.assert(() => u.isDefined(request));
     
         let letterIndex = letters.indexOf(request.letter);
@@ -1008,9 +2009,50 @@ module.exports = [
     'Wisdom',
     'Patience',
 ]
-},{}],8:[function(require,module,exports){
+},{}],"/library/prayersAreEqual.js":[function(require,module,exports){
 
-},{}],9:[function(require,module,exports){
+const u = require("wlj-utilities");
+
+module.exports = prayersAreEqual;
+
+function prayersAreEqual(prayerA, prayerB) {
+    let result;
+    u.scope(prayersAreEqual.name, x => {
+        u.merge(x, {prayerA});
+        u.merge(x, {prayerB});
+        u.assert(() => u.isDefined(prayerA));
+        u.assert(() => u.isDefined(prayerB));
+
+        let fields = [
+            'userId',
+            'petition',
+            'letter',
+        ];
+        result = u.propertiesAreEqual(prayerA, prayerB, fields);
+    });
+    return result;
+}
+
+},{"wlj-utilities":1}],"/library/publish.js":[function(require,module,exports){
+(function (__dirname){
+const {
+    execSync,
+} = require("child_process");
+
+const path = require('path');
+
+// Run tests before bumping.
+require('../test');
+
+const u = require('wlj-utilities');
+
+u.bumpPackageVersion(__dirname);
+
+execSync('npm publish');
+}).call(this,"/library")
+},{"../test":43,"child_process":46,"path":48,"wlj-utilities":1}],46:[function(require,module,exports){
+
+},{}],47:[function(require,module,exports){
 exports.endianness = function () { return 'LE' };
 
 exports.hostname = function () {
@@ -1061,7 +2103,7 @@ exports.homedir = function () {
 	return '/'
 };
 
-},{}],10:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -1367,7 +2409,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":11}],11:[function(require,module,exports){
+},{"_process":49}],49:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 

@@ -15,7 +15,7 @@
   "dependencies": {
     "firebase-admin": "^8.10.0",
     "firebase-functions": "^3.6.1",
-    "without-ceasing-library": "^1.0.4"
+    "without-ceasing-library": "^1.0.12"
   },
   "devDependencies": {
     "eslint": "^5.12.0",

@@ -1,2 +1,2 @@
 require("./tests/ask/ask.js");
-require("./tests/ask/functions/test.js")
+require("./tests/prayersAreEqual/prayersAreEqual.js");

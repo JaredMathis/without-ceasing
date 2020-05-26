@@ -7,6 +7,7 @@ module.exports = ask;
 function ask(request) {
     let result = {};
     u.scope(ask.name, x => {
+        u.merge(x, {request});
         u.assert(() => u.isDefined(request));
     
         let letterIndex = letters.indexOf(request.letter);

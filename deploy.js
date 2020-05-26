@@ -2,6 +2,8 @@ var {
     execSync
 } = require('child_process');
 
+require('./test');
+
 const command = 'firebase deploy';
 console.log('Running: ' + command);
 let result = execSync(command);

@@ -2,7 +2,12 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-const { ask } = require('without-ceasing-library');
+const { 
+    ask,
+    prayersAreEqual,
+} = require('without-ceasing-library');
+
+const prayers = 'prayers';
 
 exports.health = functions.https.onRequest(async (req, res) => {
     res.json({success:true});
@@ -17,11 +22,29 @@ exports.ask = functions.https.onRequest(async (req, res) => {
         userId: userId,
     });
 
-    let userRequests = admin.database().ref(`/user/${userId}/requests`);
+    let userRequests = admin.database().ref(`/user/${userId}/${prayers}`);
+    let userRequestsValue = await userRequests.once('value');
+
+    let allUserRequests = JSON.parse(JSON.stringify(userRequestsValue));
+    if (allUserRequests) {
+        let keys = Object.keys(allUserRequests);
+        console.log({allUserRequests});
+        for (let key of keys) {
+            let request = allUserRequests[key];
+            if (prayersAreEqual(result, request)) {
+                res.json({
+                    success:false,
+                    message:'Duplicate prayer'
+                });
+                return;
+            }
+        }
+    }
+
     let userRequestsChild = await userRequests.push();
     await userRequestsChild.set(result);
 
-    let requests = admin.database().ref('/requests');
+    let requests = admin.database().ref(`/${prayers}`);
     let requestsChild = await requests.push();
     await requestsChild.set(result);
 
@@ -29,9 +52,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
 });
 
 exports.requests = functions.https.onRequest(async (req, res) => {
-    let requests = admin.database().ref('/requests');
-    let existing = await requests.once('value');
-    let value = existing.val();
-
-    res.json({value: value});
+    let requests = admin.database().ref(`/${prayers}`);
+    let r = await requests.once('value');
+    res.json(r);
 });

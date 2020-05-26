@@ -75,15 +75,34 @@ exports.intercessions = functions.https.onRequest(async (req, res) => {
         userId: prayerUserId,
     };
 
+    let intercessions = await getIntercessions(prayer);
+
+    for (let p of intercessions) {
+        if (p.prayersAreEqual) {
+            let intercessionsValue = clone(p.intercessionsOnce);
+            console.log(intercessionsValue);
+            res.json(intercessionsValue);
+            return;
+        }
+    }
+
+    res.json({success:false, message:'did not find intercessions'});
+});
+
+async function getIntercessions(prayer, res) {
+    console.log({prayer});
+
     let expected = ask(prayer);
 
-    let userPrayers = admin.database().ref(`/user/${prayerUserId}/${prayersRoute}`);
+    let userPrayersPath = `/user/${prayer.userId}/${prayersRoute}`;
+    console.log({userPrayersPath});
+
+    let userPrayers = admin.database().ref(userPrayersPath);
     let userPrayersValue = await userPrayers.once('value');
 
     let allUserPrayers = clone(userPrayersValue);
     if (!allUserPrayers) {
-        res.json({success:false, message:'No prayers for user'});
-        return;
+        throw new Error('No prayers for user');
     }
 
     let keys = Object.keys(allUserPrayers);
@@ -103,22 +122,9 @@ exports.intercessions = functions.https.onRequest(async (req, res) => {
         return result; 
     });
 
-    await Promise.all(promises.map(p => p.promise));
-
-    for (let p of promises) {
-        if (p.prayersAreEqual) {
-            let intercessionsValue = clone(p.intercessionsOnce);
-            console.log(intercessionsValue);
-            res.json(intercessionsValue);
-            return;
-        }
-    }
-
-    res.json({success:false, message:'did not find intercessions'});
-});
-
-function getIntercessions() {
+    await Promise.all(promises.map(p => p.promise));   
     
+    return promises;
 }
 
 exports.intercede = functions.https.onRequest(async (req, res) => {

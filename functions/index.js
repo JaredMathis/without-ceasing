@@ -7,7 +7,7 @@ const {
     prayersAreEqual,
 } = require('without-ceasing-library');
 
-const prayers = 'prayers';
+const prayersRoute = 'prayers';
 
 exports.health = functions.https.onRequest(async (req, res) => {
     res.json({success:true});
@@ -22,7 +22,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
         userId: userId,
     });
 
-    let userRequests = admin.database().ref(`/user/${userId}/${prayers}`);
+    let userRequests = admin.database().ref(`/user/${userId}/${prayersRoute}`);
     let userRequestsValue = await userRequests.once('value');
 
     let allUserRequests = JSON.parse(JSON.stringify(userRequestsValue));
@@ -44,7 +44,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
     let userRequestsChild = await userRequests.push();
     await userRequestsChild.set(result);
 
-    let requests = admin.database().ref(`/${prayers}`);
+    let requests = admin.database().ref(`/${prayersRoute}`);
     let requestsChild = await requests.push();
     await requestsChild.set(result);
 
@@ -52,7 +52,7 @@ exports.ask = functions.https.onRequest(async (req, res) => {
 });
 
 exports.prayers = functions.https.onRequest(async (req, res) => {
-    let requests = admin.database().ref(`/${prayers}`);
-    let r = await requests.once('value');
+    let prayers = admin.database().ref(`/${prayersRoute}`);
+    let r = await prayers.once('value');
     res.json(r);
 });

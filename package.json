@@ -10,7 +10,7 @@
     "axios": "^0.19.2",
     "sync-request": "^6.1.0",
     "uuid": "^8.1.0",
-    "wlj-utilities": "^1.0.21"
+    "wlj-utilities": "^1.0.59"
   },
   "devDependencies": {},
   "scripts": {

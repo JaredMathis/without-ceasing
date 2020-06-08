@@ -784,6 +784,7 @@ module.exports = scope;
 let count = 0;
 
 function scope(name, lambda) {
+    scope.log = false;
     count++;
 
     let result;
@@ -820,7 +821,7 @@ function scope(name, lambda) {
                 current = current.innerError;
             }
 
-            console.log(e);
+            if (scope.log) console.log(e);
             processExit();
         } else {
             throw new ScopeError(name, x, e);

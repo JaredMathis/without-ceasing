@@ -6,7 +6,7 @@ const u = require('wlj-utilities');
 const local = "http://localhost:5001/without-ceasing/us-central1/";
 const production = 'https://us-central1-without-ceasing.cloudfunctions.net/';
 
-const server = local;
+const server = production;
 const healthRoute = server + "health";
 const prayersRoute = server + "prayers";
 const prayRoute = server + "pray";
@@ -78,7 +78,7 @@ function assertTotalPrayersAtLeast(prayerCount) {
         let keys = Object.keys(body);
     
         u.merge(x, {keys});
-        u.assert(() => keys.length === prayerCount);
+        u.assert(() => keys.length >= prayerCount);
     })
 }
 
@@ -101,8 +101,10 @@ function assertTotalIntercessionsAtLeast(letter, petition, userId, intercessionC
         let r = request('GET', intercessionsRoute + u.toQueryString({letter,petition,prayerUserId:userId}));
     
         u.merge(x, {step:'parsing'});
-        let body = JSON.parse(r.body.toString());
-    
+        let json = r.body.toString();
+        u.merge(x, {json});
+        let body = JSON.parse(json);
+
         u.merge(x, {step:'getting keys'});
         u.merge(x, {body});
         let keys = Object.keys(body);

@@ -6,7 +6,7 @@ module.exports = getWebDirectory;
 function getWebDirectory() {
     let result;
     u.scope(getWebDirectory.name, x => {
-        result = 'docs';
+        result = 'public';
     });
     return result;
 }

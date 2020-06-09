@@ -14,8 +14,8 @@
 
 <body ng-controller="HomeController">
     <div ng-show="state.screen == screens.selectCountry">
-        <h1>Where are you located?</h1>
-        <h3>This way others can know Christians around the world are praying for them</h3>
+        <h1 id="SelectCountryHeader1">Where are you located?</h1>
+        <h3 id="SelectCountryHeader2">This way others can know Christians around the world are praying for them</h3>
 
         <select class="custom-select"
             ng-model="state.selectedCountry"
@@ -23,14 +23,16 @@
         </select>
 
         <br>
-        <button type="button"
+        <button id="LocatedInUS"
+            type="button"
             class="btn btn-primary"
             ng-click="selectCountry()">
             I am located in {{ state.selectedCountry }}
         </button>
 
         <br>
-        <button type="button"
+        <button id="LocatedOther"
+            type="button"
             class="btn btn-primary"
             ng-click="noCountry()">
             No, Thank You. I don't want to say where I'm at.
@@ -39,17 +41,18 @@
 
     <div ng-show="state.screen == screens.pray">
         Heavenly Father,
-        please give {{ letters[getCurrentPrayer().letter] }}
-        {{ petitions[getCurrentPrayer().petition] }}.
+        please give {{ letters[state.prayer.letter] }}
+        {{ petitions[state.prayer.petition] }}.
 
         <br>
-        <button type="button"
+        <button id="InJesusName"
+            type="button"
             class="btn btn-primary"
             ng-click=pray()>In Jesus Name!</button>
-
         <br>
-        <button type="button"
-            class="btn btn-secondary"
+        <button id="AskForPrayer"
+            type="button"
+            class="btn btn-primary"
             ng-click="ask()">
             Ask for prayer
         </button>
@@ -59,7 +62,8 @@
         Who would you like to pray for?
 
         <br>
-        <select class="custom-select"
+        <select id="PrayerRequestName"
+            class="custom-select"
             ng-model="state.prayerRequest.name"
             ng-change="stateChanged()"
             ng-options="letter for letter in letters">
@@ -69,18 +73,30 @@
         What would you like prayer for?
 
         <br>
-        <select class="custom-select"
+        <select id="PrayerRequestPetition"
+            class="custom-select"
             ng-model="state.prayerRequest.petition"
             ng-change="stateChanged()"
             ng-options="petition for petition in petitions">
         </select>
 
         <br>
-        <button type="button"
+        <button id="SubmitRequest"
+        type="button"
             class="btn btn-primary"
             ng-click="askSubmit()">
-            Ask for prayer
+            Submit Request!
         </button>
+    </div>
+
+    <div>
+        State: {{ state }}
+    </div>
+    <div>
+        Letters: {{ letters }}
+    </div>
+    <div>
+        Test: {{ prayer.letter }}
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>

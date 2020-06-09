@@ -3,7 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const u = require('wlj-utilities');
 
+const getWebDirectory = require('./library/getWebDirectory');
+
 u.scope(__filename, context => {
+    if (!fs.existsSync(getWebDirectory())) {
+        fs.mkdirSync(getWebDirectory());
+    }
+
     const except = [
         'node_modules',
         'package.json',
@@ -16,7 +22,7 @@ u.scope(__filename, context => {
     const filePaths = filesExcept.map(f => directory + f);
     
     let command = `
-    browserify ${filePaths.map(f => '-r ' + f).join(' ')} > public/bundle.js
+    browserify ${filePaths.map(f => '-r ' + f).join(' ')} > ${getWebDirectory()}/bundle.js
     `;
 
     u.merge(context, {command});

@@ -1,3 +1,5 @@
+console.log(__filename + " entered");
+
 const fs = require('fs');
 const path = require('path');
 const u = require('wlj-utilities');

@@ -9,6 +9,6 @@ u.scope(__filename, x => {
     let parsed = u.awsLambdaApiCall(apigateway, wcRequestPrayer.name, { 
         name: "Jared" 
     });
-
+    console.log(parsed);
     u.assertIsEqualJson(parsed, {"success":true,"result":"Healthy"});
 });

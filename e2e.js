@@ -1,7 +1,5 @@
 const u = require('wlj-utilities');
 
-require('./deploy');
-
 var webdriver = require('selenium-webdriver');
 
 var driver = new webdriver.Builder().

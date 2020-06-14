@@ -3,6 +3,18 @@ const petitions = require('/library/petitions.js');
 const countries = require('/library/countries.js');
 
 const u = require('/library/include.js')['wlj-utilities'];
+const api = require('/library/include.js')['without-ceasing-lambda/aws-apigateway.json'];
+
+async function callApi($http, lambdaName, data) {
+    let apiId = api[lambdaName]["default"];
+    let result = await $http.post(`https://${apiId}.execute-api.us-east-1.amazonaws.com/prod`, data);
+    let parsed = JSON.parse(result.data)
+    console.log('callApi', {lambdaName,parsed});
+    if (parsed.success === false) {
+        throw new Error('callApi failed to ' + lambdaName);
+    }
+    return parsed.result;
+}
 
 // https://stackoverflow.com/a/2117523/569302
 function uuidv4() {
@@ -78,18 +90,17 @@ angular.module('app').controller('HomeController',
         updateLocalStorage();
     }
 
-    $scope.askSubmit = () => {
+    $scope.requestPrayer = async () => {
         const query = {
             userId: $scope.state.userId,
-            letter: $scope.state.prayerRequest.name,
+            name: $scope.state.prayerRequest.name,
             petition: $scope.state.prayerRequest.petition,
-        }
-        $http.get(server + "/ask" + u.toQueryString(query)).then((response) => {
-            console.log('askSubmit', { response });
+        };
+        let response = await callApi($http, 'wcRequestPrayer', query);
 
-            $scope.state.screen = screens.pray;
-            updateLocalStorage();
-        });
+        $scope.state.screen = screens.pray;
+        updateLocalStorage();
+        $scope.$digest();
     };
 
     $scope.pray = () => {
@@ -102,7 +113,7 @@ angular.module('app').controller('HomeController',
             country: $scope.state.selectedCountry,
         }
         $http.get(server + "/pray" + u.toQueryString(query)).then((response) => {
-            console.log('askSubmit', { response });
+            console.log('pray', { response });
 
             $scope.state.screen = screens.pray;
             updateLocalStorage();

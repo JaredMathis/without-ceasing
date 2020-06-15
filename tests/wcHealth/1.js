@@ -7,7 +7,7 @@ const index = require("../../index.js");
 
 u.scope(__filename, x => {
     let apigateway = require("./../../" + u.getAwsApiGatewayFileName());
-    let parsed = u.awsLambdaApiCall(apigateway, wcHealth.name);
+    let parsed = u.awsLambdaApiCall(apigateway, wcHealth.name, {}, x);
 
     u.assertIsEqualJson(parsed, {"success":true,"result":"Healthy"});
 });

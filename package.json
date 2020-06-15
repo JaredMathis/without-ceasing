@@ -8,11 +8,11 @@
   },
   "author": "",
   "dependencies": {
-    "aws-sdk": "^2.693.0",
+    "aws-sdk": "^2.696.0",
     "nightwatch": "^1.3.6",
     "without-ceasing-lambda": "^1.0.1",
-    "without-ceasing-library": "^1.0.2",
-    "wlj-utilities": "^1.0.70"
+    "without-ceasing-library": "^1.0.16",
+    "wlj-utilities": "^1.0.80"
   },
   "devDependencies": {
     "chromedriver": "^83.0.0",

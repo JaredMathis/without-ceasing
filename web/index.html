@@ -46,6 +46,12 @@
             ng-click="ask()">
             Ask for prayer
         </button>
+        <button id="PrayerRequests"
+            type="button"
+            class="btn btn-primary"
+            ng-click="prayerRequests()">
+            Prayer Requests
+        </button>
         <div ng-show="!praying && state.prayerRequests.length > 0">
             Heavenly Father,
             please give {{ letters[getCurrentPrayer().data.request.nameId] }}
@@ -59,7 +65,15 @@
         </div>
     </div>
 
-    <div ng-show="state.screen == screens.ask">
+    <div ng-show="state.screen == screens.ask && !requesting">
+        <button id="TODO"
+            type="button"
+            class="btn btn-secondary"
+            ng-click="backToPrayers()">
+            Back to Prayers
+        </button>
+        <br>
+
         Who would you like to pray for?
 
         <br>
@@ -88,14 +102,15 @@
         </button>
     </div>
 
-    <div>
-        State: {{ state }}
-    </div>
-    <div>
-        Letters: {{ letters }}
-    </div>
-    <div>
-        Test: {{ prayer.letter }}
+    <div ng-show="state.screen == screens.requests">
+        <button id="TODO"
+            type="button"
+            class="btn btn-secondary"
+            ng-click="backToPrayers()">
+            Back to Prayers
+        </button>
+
+        My Requests: {{ state.myRequests }}
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>

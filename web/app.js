@@ -29,6 +29,7 @@ const screens = {
     selectCountry: 'selectCountry',
     pray: 'pray',
     ask: 'ask',
+    requests: 'requests'
 };
 
 const unspoken = "Unspoken";
@@ -45,6 +46,7 @@ angular.module('app').controller('HomeController',
         prayerRequests: [],
         currentPrayerIndex: 0,
         userId: uuidv4(),
+        myRequests: [],
     };
     u.merge($scope.state, defaultState);
     console.log('Loaded default state');
@@ -87,14 +89,18 @@ angular.module('app').controller('HomeController',
     };
 
     $scope.requestPrayer = async () => {
+        $scope.requesting = true;
         const data = {
             userId: $scope.state.userId,
             name: $scope.state.prayerRequest.name,
             petition: $scope.state.prayerRequest.petition,
         };
-        await callApi($http, 'wcRequestPrayer', data);
+        let response = await callApi($http, 'wcRequestPrayer', data);
+        console.log('requestPrayer', {response});
+        $scope.state.myRequests.push(response.result.key);
 
         $scope.state.screen = screens.pray;
+        $scope.requesting = false;
         $scope.$digest();
     };
 
@@ -129,5 +135,13 @@ angular.module('app').controller('HomeController',
 
     $scope.getCurrentPrayer = () => {
         return $scope.state.prayerRequests[$scope.state.currentPrayerIndex];
+    }
+
+    $scope.prayerRequests = () => {
+        $scope.state.screen = screens.requests;
+    }
+
+    $scope.backToPrayers = () => {
+        $scope.state.screen = screens.pray;
     }
 });

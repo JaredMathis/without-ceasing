@@ -1,15 +1,11 @@
 <html ng-app="app">
 
 <head>
-    <meta content="text/html;charset=utf-8"
-        http-equiv="Content-Type">
-    <meta content="utf-8"
-        http-equiv="encoding">
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
 
-    <link rel="stylesheet"
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 </head>
 
 <body ng-controller="HomeController">
@@ -17,60 +13,40 @@
         <h1 id="SelectCountryHeader1">Where are you located?</h1>
         <h3 id="SelectCountryHeader2">This way others can know Christians around the world are praying for them</h3>
 
-        <select class="custom-select"
-            ng-model="state.selectedCountry"
-            ng-options="country for country in countries">
+        <select class="custom-select" ng-model="state.selectedCountry" ng-options="country for country in countries">
         </select>
 
         <br>
-        <button id="LocatedInUS"
-            type="button"
-            class="btn btn-primary"
-            ng-click="selectCountry()">
+        <button id="LocatedInUS" type="button" class="btn btn-primary" ng-click="selectCountry()">
             I am located in {{ state.selectedCountry }}
         </button>
 
         <br>
-        <button id="LocatedOther"
-            type="button"
-            class="btn btn-primary"
-            ng-click="noCountry()">
+        <button id="LocatedOther" type="button" class="btn btn-primary" ng-click="noCountry()">
             No, Thank You. I don't want to say where I'm at.
         </button>
     </div>
 
     <div ng-show="state.screen == screens.pray">
-        <button id="AskForPrayer"
-            type="button"
-            class="btn btn-primary"
-            ng-click="ask()">
+        <button id="AskForPrayer" type="button" class="btn btn-primary" ng-click="ask()">
             Ask for prayer
         </button>
-        <button id="PrayerRequests"
-            type="button"
-            class="btn btn-primary"
-            ng-show="state.myRequestKeys.length > 0"
+        <button id="PrayerRequests" type="button" class="btn btn-primary" ng-show="state.myRequestKeys.length > 0"
             ng-click="prayerRequests()">
             Prayer Requests
         </button>
         <div ng-show="!praying && state.prayerRequests.length > 0">
             Heavenly Father,
-            please give {{ letters[getCurrentPrayer().data.request.nameId] }}
+            please give {{ names[getCurrentPrayer().data.request.nameId] }}
             {{ petitions[getCurrentPrayer().data.request.petitionId] }}.
 
             <br>
-            <button id="InJesusName"
-                type="button"
-                class="btn btn-primary"
-                ng-click=pray()>In Jesus Name!</button>
+            <button id="InJesusName" type="button" class="btn btn-primary" ng-click=pray()>In Jesus Name!</button>
         </div>
     </div>
 
     <div ng-show="state.screen == screens.ask && !requesting">
-        <button id="TODO"
-            type="button"
-            class="btn btn-secondary"
-            ng-click="backToPrayers()">
+        <button id="TODO" type="button" class="btn btn-secondary" ng-click="backToPrayers()">
             Back to Prayers
         </button>
         <br>
@@ -78,42 +54,56 @@
         Who would you like to pray for?
 
         <br>
-        <select id="PrayerRequestName"
-            class="custom-select"
-            ng-model="state.prayerRequest.name"
-            ng-options="letter for letter in letters">
+        <select id="PrayerRequestName" class="custom-select" ng-model="state.prayerRequest.name"
+            ng-options="name for name in names">
         </select>
 
         <br>
         What would you like prayer for?
 
         <br>
-        <select id="PrayerRequestPetition"
-            class="custom-select"
-            ng-model="state.prayerRequest.petition"
+        <select id="PrayerRequestPetition" class="custom-select" ng-model="state.prayerRequest.petition"
             ng-options="petition for petition in petitions">
         </select>
 
         <br>
-        <button id="SubmitRequest"
-        type="button"
-            class="btn btn-primary"
-            ng-click="requestPrayer()">
+        <button id="SubmitRequest" type="button" class="btn btn-primary" ng-click="requestPrayer()">
             Submit Request!
         </button>
     </div>
 
     <div ng-show="state.screen == screens.requests">
-        <button id="TODO"
-            type="button"
-            class="btn btn-secondary"
-            ng-click="backToPrayers()">
+        <button id="TODO" type="button" class="btn btn-secondary" ng-click="backToPrayers()">
             Back to Prayers
         </button>
 
-        <div ng-repeat="m in myRequests">
-            {{ m }}
-        </div>
+        <table class="table"
+            ng-show="myRequests.length > 0">
+            <thead>
+                <tr>
+                    <th>Request</th>
+                    <th>Prayers From</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="request in myRequests">
+                    <td>
+                        {{ petitions[request.data.request.petitionId] }}
+                         for 
+                        {{ names[request.data.request.nameId] }}
+                    </td>
+                    <td>
+                        <div ng-show="getCountryIds(request.data.prayers).length == 0">
+                            ---
+                        </div>
+                        <div ng-show="getCountryIds(request.data.prayers).length >= 1" 
+                            ng-repeat="c in getCountryIds(request.data.prayers)">
+                            {{ countries[c]}} ({{getPrayerCount(request.data.prayers, c)}} {{getPrayerCount(request.data.prayers, c) === 1 ? 'Prayer' : "Prayers"}})
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>

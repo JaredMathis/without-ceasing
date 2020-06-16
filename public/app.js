@@ -46,7 +46,7 @@ angular.module('app').controller('HomeController',
         prayerRequests: [],
         currentPrayerIndex: 0,
         userId: uuidv4(),
-        myRequests: [],
+        myRequestKeys: [],
     };
     u.merge($scope.state, defaultState);
     console.log('Loaded default state');
@@ -97,7 +97,7 @@ angular.module('app').controller('HomeController',
         };
         let response = await callApi($http, 'wcRequestPrayer', data);
         console.log('requestPrayer', {response});
-        $scope.state.myRequests.push(response.result.key);
+        $scope.state.myRequestKeys.push(response.result.key);
 
         $scope.state.screen = screens.pray;
         $scope.requesting = false;
@@ -139,6 +139,29 @@ angular.module('app').controller('HomeController',
 
     $scope.prayerRequests = () => {
         $scope.state.screen = screens.requests;
+    }
+
+    $scope.$watch('state.screen', s => {
+        if (s === screens.requests) {
+            refreshMyRequests();
+        }
+    });
+
+    async function refreshMyRequests() {
+        console.log('refreshMyRequests entered');
+        $scope.myRequests = [];
+
+        u.loop($scope.state.myRequestKeys, key => {
+            let data = {
+                key,
+            }
+            callApi($http, 'wcPrayerRequest', data)
+                .then((response) => {
+                    $scope.myRequests.push(response);
+                    $scope.$digest();
+                })
+        });
+        
     }
 
     $scope.backToPrayers = () => {

@@ -49,6 +49,7 @@
         <button id="PrayerRequests"
             type="button"
             class="btn btn-primary"
+            ng-show="state.myRequestKeys.length > 0"
             ng-click="prayerRequests()">
             Prayer Requests
         </button>
@@ -110,7 +111,9 @@
             Back to Prayers
         </button>
 
-        My Requests: {{ state.myRequests }}
+        <div ng-repeat="m in myRequests">
+            {{ m }}
+        </div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>

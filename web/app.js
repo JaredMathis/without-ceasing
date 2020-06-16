@@ -102,6 +102,9 @@ angular.module('app').controller('HomeController',
         $scope.state.prayerRequests = [];
         $scope.state.prayerRequests 
             = await callApi($http, 'wcPrayerRequests', {});
+        // Exclude requests from current user
+        $scope.state.prayerRequests = $scope.state.prayerRequests
+            .filter(p => p.data.request.userId !== $scope.state.userId)
         $scope.state.currentPrayerIndex = 0;
         $scope.$digest();
         console.log('refreshPrayerRequests leaving');

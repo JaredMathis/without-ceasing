@@ -40,22 +40,23 @@
     </div>
 
     <div ng-show="state.screen == screens.pray">
-        Heavenly Father,
-        please give {{ letters[state.prayer.letter] }}
-        {{ petitions[state.prayer.petition] }}.
-
-        <br>
-        <button id="InJesusName"
-            type="button"
-            class="btn btn-primary"
-            ng-click=pray()>In Jesus Name!</button>
-        <br>
         <button id="AskForPrayer"
             type="button"
             class="btn btn-primary"
             ng-click="ask()">
             Ask for prayer
         </button>
+        <div ng-show="!praying && state.prayerRequests.length > 0">
+            Heavenly Father,
+            please give {{ letters[getCurrentPrayer().data.request.nameId] }}
+            {{ petitions[getCurrentPrayer().data.request.petitionId] }}.
+
+            <br>
+            <button id="InJesusName"
+                type="button"
+                class="btn btn-primary"
+                ng-click=pray()>In Jesus Name!</button>
+        </div>
     </div>
 
     <div ng-show="state.screen == screens.ask">
@@ -65,7 +66,6 @@
         <select id="PrayerRequestName"
             class="custom-select"
             ng-model="state.prayerRequest.name"
-            ng-change="stateChanged()"
             ng-options="letter for letter in letters">
         </select>
 
@@ -76,7 +76,6 @@
         <select id="PrayerRequestPetition"
             class="custom-select"
             ng-model="state.prayerRequest.petition"
-            ng-change="stateChanged()"
             ng-options="petition for petition in petitions">
         </select>
 

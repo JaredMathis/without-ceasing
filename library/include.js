@@ -3,5 +3,6 @@
 // Requiring them directly in app.js didn't seem to work.
 
 module.exports['wlj-utilities'] = require('wlj-utilities');
+module.exports['without-ceasing-library'] = require('without-ceasing-library');
 module.exports['without-ceasing-lambda/aws-apigateway.json'] 
     = require('without-ceasing-lambda/aws-apigateway.json');

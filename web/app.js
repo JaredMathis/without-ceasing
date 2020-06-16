@@ -1,11 +1,13 @@
-const letters = require('/library/letters.js');
-const petitions = require('/library/petitions.js');
-const countries = require('/library/countries.js');
+const library = require('/library/include.js')['without-ceasing-library'];
+const letters = library.getNames();
+const petitions = library.getPetitions();
+const countries = library.getCountries();
 
 const u = require('/library/include.js')['wlj-utilities'];
 const api = require('/library/include.js')['without-ceasing-lambda/aws-apigateway.json'];
 
 async function callApi($http, lambdaName, data) {
+    console.log('callApi', {lambdaName,data});
     let apiId = api[lambdaName]["default"];
     let result = await $http.post(`https://${apiId}.execute-api.us-east-1.amazonaws.com/prod`, data);
     let parsed = JSON.parse(result.data)
@@ -40,10 +42,9 @@ angular.module('app').controller('HomeController',
     const defaultState = {
         selectedCountry: 'United States',
         screen: screens.selectCountry,
-        prayer: {
-            petition: 0,
-            letter: 0,
-        },
+        prayerRequests: [],
+        currentPrayerIndex: 0,
+        userId: uuidv4(),
     };
     u.merge($scope.state, defaultState);
     console.log('Loaded default state');
@@ -73,54 +74,57 @@ angular.module('app').controller('HomeController',
 
     $scope.selectCountry = () => {
         $scope.state.screen = screens.pray;
-        updateLocalStorage();
     };
+
     $scope.noCountry = () => {
-        $scope.state.selectedCountry = unspoken;
+        $scope.state.selectedCountry = "Unknown";
         $scope.selectCountry();
     };
 
     $scope.ask = () => {
         $scope.state.screen = screens.ask;
         $scope.state.prayerRequest = {};
-        updateLocalStorage();        
     };
 
-    $scope.stateChanged = () => {
-        updateLocalStorage();
-    }
-
     $scope.requestPrayer = async () => {
-        const query = {
+        const data = {
             userId: $scope.state.userId,
             name: $scope.state.prayerRequest.name,
             petition: $scope.state.prayerRequest.petition,
         };
-        let response = await callApi($http, 'wcRequestPrayer', query);
+        await callApi($http, 'wcRequestPrayer', data);
 
         $scope.state.screen = screens.pray;
-        updateLocalStorage();
         $scope.$digest();
     };
 
-    $scope.pray = () => {
-        let currentPrayer = $scope.getCurrentPrayer();
-        const query = {
-            prayerUserId: currentPrayer.userId,
-            letter: currentPrayer.letter.toString(),
-            petition: currentPrayer.petition.toString(),
-            userId: $scope.state.userId,
-            country: $scope.state.selectedCountry,
-        }
-        $http.get(server + "/pray" + u.toQueryString(query)).then((response) => {
-            console.log('pray', { response });
+    async function refreshPrayerRequests() {
+        $scope.state.prayerRequests = [];
+        $scope.state.prayerRequests 
+            = await callApi($http, 'wcPrayerRequests', {});
+        $scope.state.currentPrayerIndex = 0;
+        $scope.$digest();
+        console.log('refreshPrayerRequests leaving');
+    }
 
-            $scope.state.screen = screens.pray;
-            updateLocalStorage();
-        });
+    refreshPrayerRequests();
+
+    $scope.pray = async () => {
+        $scope.praying = true;
+        const data = {
+            country: $scope.state.selectedCountry,
+            key: $scope.getCurrentPrayer().key,
+        }
+        await callApi($http, 'wcPray', data);
+        $scope.state.currentPrayerIndex++;
+        if ($scope.state.currentPrayerIndex >= $scope.state.prayerRequests.length) {
+            refreshPrayerRequests();
+        }
+        $scope.praying = false;
+        $scope.$digest();
     };
 
     $scope.getCurrentPrayer = () => {
-        return $scope.state.prayer;
+        return $scope.state.prayerRequests[$scope.state.currentPrayerIndex];
     }
 });
